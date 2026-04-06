@@ -2,20 +2,23 @@ package model
 
 import (
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Outfit struct {
-	Name      string
-	Occasion  []string
-	Season    []string
-	Mood      string
-	Fragrance string
-	Notes     string
-	Favorite  bool
-	WearCount int
-	Photo     string
-	LastWorn  time.Time
-	Items     []Item
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name      string             `bson:"name" json:"name"`
+	Occasion  []string           `bson:"occasion" json:"occasion"`
+	Season    []string           `bson:"season" json:"season"`
+	Mood      string             `bson:"mood" json:"mood"`
+	Fragrance string             `bson:"fragrance" json:"fragrance"`
+	Notes     string             `bson:"notes" json:"notes"`
+	Favorite  bool               `bson:"favorite" json:"favorite"`
+	WearCount int                `bson:"wear_count" json:"wear_count"`
+	Photo     string             `bson:"photo" json:"photo"`
+	LastWorn  time.Time          `bson:"last_worn" json:"last_worn"`
+	Items     []Item             `bson:"items" json:"items"`
 }
 
 type OutfitBuilder struct {

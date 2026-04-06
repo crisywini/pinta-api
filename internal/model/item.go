@@ -1,16 +1,19 @@
 package model
 
+import "go.mongodb.org/mongo-driver/bson/primitive"
+
 type Item struct {
-	Name      string
-	Category  Category
-	Color     string
-	Brand     string
-	Material  string
-	Season    []string
-	Occasion  []string
-	Photo     string
-	Condition string
-	WearCount int
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Name      string             `bson:"name" json:"name"`
+	Category  Category           `bson:"category" json:"category"`
+	Color     string             `bson:"color" json:"color"`
+	Brand     string             `bson:"brand" json:"brand"`
+	Material  string             `bson:"material" json:"material"`
+	Season    []string           `bson:"season" json:"season"`
+	Occasion  []string           `bson:"occasion" json:"occasion"`
+	Photo     string             `bson:"photo" json:"photo"`
+	Condition string             `bson:"condition" json:"condition"`
+	WearCount int                `bson:"wear_count" json:"wear_count"`
 }
 
 type ItemBuilder struct {
