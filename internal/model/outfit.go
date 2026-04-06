@@ -13,6 +13,7 @@ type Outfit struct {
 	Notes     string
 	Favorite  bool
 	WearCount int
+	Photo     string
 	LastWorn  time.Time
 	Items     []Item
 }
@@ -40,6 +41,11 @@ func (o *OutfitBuilder) WithOccasion(occasion []string) *OutfitBuilder {
 	cp := make([]string, len(occasion))
 	copy(cp, occasion)
 	o.outfit.Occasion = cp
+	return o
+}
+
+func (o *OutfitBuilder) WithPhoto(photo string) *OutfitBuilder {
+	o.outfit.Photo = photo
 	return o
 }
 
