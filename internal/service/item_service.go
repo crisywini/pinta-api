@@ -41,6 +41,44 @@ func (s *ItemService) Create(item *model.Item) (*model.Item, error) {
 	return s.repository.Save(item)
 }
 
+func (s *ItemService) GetById(id string) (*model.Item, error) {
+	if id == "" {
+		return nil, fmt.Errorf("Missing item id")
+	}
+
+	item, err := s.repository.FindByID(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return item, nil
+}
+
+func (s *ItemService) GetAll() ([]model.Item, error) {
+	return s.repository.FindAll()
+}
+
+func (s *ItemService) Update(id string, updated *model.Item) error {
+
+	if id == "" {
+		return fmt.Errorf("Missing item id")
+	}
+
+	if validItem := validateItem(updated); validItem != nil {
+		return validItem
+	}
+
+	return s.repository.Update(id, updated)
+}
+
+func (s *ItemService) DeleteById(id string) error {
+	if id == "" {
+		return fmt.Errorf("Missing item id")
+	}
+	return s.repository.Delete(id)
+}
+
 func applyItemDefaults(item *model.Item) {
 	if item.Condition == "" {
 		item.Condition = "good"
