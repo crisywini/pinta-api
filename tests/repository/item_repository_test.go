@@ -8,57 +8,58 @@ import (
 	"github.com/crisywini/pinta-api/internal/model"
 	"github.com/crisywini/pinta-api/internal/repository"
 	"github.com/testcontainers/testcontainers-go/modules/mongodb"
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-func TestItemRepository_SaveAndRetrieve(t *testing.T) {
+func setupMongoRepo(t *testing.T) (*repository.ItemRepository, func()) {
+	t.Helper()
 	ctx := context.Background()
 
-	// Start a real MongoDB container
-	mongoContainer, err := mongodb.Run(ctx, "mongo:7")
+	container, err := mongodb.Run(ctx, "mongo:7")
 	if err != nil {
 		t.Fatalf("failed to start mongodb container: %v", err)
 	}
-	defer func() {
-		if err := mongoContainer.Terminate(ctx); err != nil {
-			t.Logf("failed to terminate container: %v", err)
-		}
-	}()
 
-	uri, err := mongoContainer.ConnectionString(ctx)
+	uri, err := container.ConnectionString(ctx)
 	if err != nil {
+		_ = container.Terminate(ctx)
 		t.Fatalf("failed to get connection string: %v", err)
 	}
 
 	client, err := mongo.Connect(options.Client().ApplyURI(uri))
 	if err != nil {
+		_ = container.Terminate(ctx)
 		t.Fatalf("failed to connect to mongodb: %v", err)
 	}
-	defer func() {
+
+	repo := repository.NewItemRepository(client.Database("pinta_test"))
+
+	cleanup := func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_ = client.Disconnect(shutdownCtx)
-	}()
+		_ = container.Terminate(ctx)
+	}
 
-	db := client.Database("pinta_test")
-	repo := repository.NewItemRepository(db)
+	return repo, cleanup
+}
 
-	// Build the item to save
+func TestItemRepository_SaveAndRetrieve(t *testing.T) {
+	repo, cleanup := setupMongoRepo(t)
+	defer cleanup()
+
 	item := model.NewItemBuilder("White T-Shirt", model.Top).
 		WithColor("White").
 		WithBrand("Zara").
 		WithCondition("new").
 		Build()
 
-	// Save
 	saved, err := repo.Save(&item)
 	if err != nil {
 		t.Fatalf("Save() error = %v", err)
 	}
 
-	// Verify the returned item has an ID assigned
 	if saved.ID.IsZero() {
 		t.Fatal("expected ID to be set after Save, got zero value")
 	}
@@ -77,19 +78,40 @@ func TestItemRepository_SaveAndRetrieve(t *testing.T) {
 	if saved.Condition != "new" {
 		t.Errorf("Condition = %q, want %q", saved.Condition, "new")
 	}
+}
 
-	// Verify the document was actually persisted in MongoDB
-	var found model.Item
-	err = db.Collection("items").
-		FindOne(ctx, bson.M{"name": "White T-Shirt"}).
-		Decode(&found)
+func TestItemRepository_FindAll(t *testing.T) {
+	repo, cleanup := setupMongoRepo(t)
+	defer cleanup()
+
+	seeds := []model.Item{
+		model.NewItemBuilder("White T-Shirt", model.Top).WithColor("White").WithBrand("Zara").Build(),
+		model.NewItemBuilder("Blue Jeans", model.Bottom).WithColor("Blue").WithBrand("Levi's").Build(),
+		model.NewItemBuilder("Red Sneakers", model.Shoes).WithColor("Red").WithBrand("Nike").Build(),
+	}
+
+	for i := range seeds {
+		if _, err := repo.Save(&seeds[i]); err != nil {
+			t.Fatalf("Save() error = %v", err)
+		}
+	}
+
+	found, err := repo.FindAll()
 	if err != nil {
-		t.Fatalf("FindOne() after Save error = %v", err)
+		t.Fatalf("FindAll() error = %v", err)
 	}
-	if found.Name != saved.Name {
-		t.Errorf("persisted Name = %q, want %q", found.Name, saved.Name)
+
+	if len(found) != len(seeds) {
+		t.Fatalf("FindAll() returned %d items, want %d", len(found), len(seeds))
 	}
-	if found.Category != saved.Category {
-		t.Errorf("persisted Category = %q, want %q", found.Category, saved.Category)
+
+	nameSet := make(map[string]bool, len(found))
+	for _, it := range found {
+		nameSet[it.Name] = true
+	}
+	for _, seed := range seeds {
+		if !nameSet[seed.Name] {
+			t.Errorf("FindAll() missing item %q", seed.Name)
+		}
 	}
 }
