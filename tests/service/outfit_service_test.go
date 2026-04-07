@@ -15,8 +15,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-// setupOutfitService spins up a real MongoDB container and returns the outfit service,
-// the raw item repository (for pre-seeding closet items), and a cleanup func.
 func setupOutfitService(t *testing.T) (*service.OutfitService, *repository.ItemRepository, func()) {
 	t.Helper()
 	ctx := context.Background()
@@ -53,7 +51,6 @@ func setupOutfitService(t *testing.T) (*service.OutfitService, *repository.ItemR
 	return svc, itemRepo, cleanup
 }
 
-// seedItem saves an item directly to the item repo and returns the persisted copy (with ID set).
 func seedItem(t *testing.T, repo *repository.ItemRepository, item model.Item) model.Item {
 	t.Helper()
 	saved, err := repo.Save(&item)
@@ -63,7 +60,6 @@ func seedItem(t *testing.T, repo *repository.ItemRepository, item model.Item) mo
 	return *saved
 }
 
-// minimalOutfit builds the smallest valid outfit (top + bottom + shoes).
 func minimalOutfit(name string, top, bottom, shoes model.Item) model.Outfit {
 	return model.NewOutfitBuilder().
 		WithName(name).
@@ -75,15 +71,12 @@ func TestOutfitService_Create(t *testing.T) {
 	svc, itemRepo, cleanup := setupOutfitService(t)
 	defer cleanup()
 
-	// Seed the three mandatory items once — reused across all subtests.
 	top := seedItem(t, itemRepo,
 		model.NewItemBuilder("White T-Shirt", model.Top).WithColor("White").Build())
 	bottom := seedItem(t, itemRepo,
 		model.NewItemBuilder("Blue Jeans", model.Bottom).WithColor("Blue").Build())
 	shoes := seedItem(t, itemRepo,
 		model.NewItemBuilder("White Sneakers", model.Shoes).WithColor("White").Build())
-
-	// ── happy path ────────────────────────────────────────────────────────────
 
 	t.Run("saves minimal valid outfit and assigns id", func(t *testing.T) {
 		outfit := minimalOutfit("Casual Friday", top, bottom, shoes)
@@ -132,8 +125,6 @@ func TestOutfitService_Create(t *testing.T) {
 		}
 	})
 
-	// ── name validation ───────────────────────────────────────────────────────
-
 	t.Run("name/too short", func(t *testing.T) {
 		outfit := minimalOutfit("x", top, bottom, shoes)
 		assertOutfitValidationError(t, svc, outfit, "name must be between 2 and 50 characters")
@@ -148,8 +139,6 @@ func TestOutfitService_Create(t *testing.T) {
 		outfit := minimalOutfit("Look#1!", top, bottom, shoes)
 		assertOutfitValidationError(t, svc, outfit, "name may only contain letters")
 	})
-
-	// ── item list: total count ────────────────────────────────────────────────
 
 	t.Run("items/empty list", func(t *testing.T) {
 		outfit := model.NewOutfitBuilder().WithName("Empty").Build()
@@ -168,7 +157,6 @@ func TestOutfitService_Create(t *testing.T) {
 	})
 
 	t.Run("items/more than 10", func(t *testing.T) {
-		// Build a structurally valid but oversized list (no real IDs needed — count check fires first).
 		items := []model.Item{
 			{Name: "Top", Category: model.Top, Color: "White"},
 			{Name: "Bottom", Category: model.Bottom, Color: "Blue"},
@@ -185,8 +173,6 @@ func TestOutfitService_Create(t *testing.T) {
 		outfit := model.NewOutfitBuilder().WithName("Too Many").WithItems(items).Build()
 		assertOutfitValidationError(t, svc, outfit, "outfit must have at most 10 items")
 	})
-
-	// ── item list: mandatory categories ──────────────────────────────────────
 
 	t.Run("items/missing top", func(t *testing.T) {
 		outfit := model.NewOutfitBuilder().
@@ -263,8 +249,6 @@ func TestOutfitService_Create(t *testing.T) {
 		assertOutfitValidationError(t, svc, outfit, "outfit must have exactly 1 pair of shoes, got 2")
 	})
 
-	// ── item list: optional category limits ───────────────────────────────────
-
 	t.Run("items/two outerwear pieces", func(t *testing.T) {
 		outfit := model.NewOutfitBuilder().
 			WithName("Double Coat").
@@ -339,8 +323,6 @@ func TestOutfitService_Create(t *testing.T) {
 		assertOutfitValidationError(t, svc, outfit, "outfit may have at most 3 jewelry pieces")
 	})
 
-	// ── closet verification ───────────────────────────────────────────────────
-
 	t.Run("items/zero id rejected", func(t *testing.T) {
 		zeroTop := model.Item{Name: "Unsaved Top", Category: model.Top, Color: "White"}
 		outfit := minimalOutfit("Zero ID", zeroTop, bottom, shoes)
@@ -348,7 +330,6 @@ func TestOutfitService_Create(t *testing.T) {
 	})
 
 	t.Run("items/duplicate item rejected", func(t *testing.T) {
-		// Use two occurrences of the same accessory (category allows 0-3 so counts pass).
 		acc := seedItem(t, itemRepo,
 			model.NewItemBuilder("Brown Belt", model.Accesories).WithColor("Brown").Build())
 
@@ -370,8 +351,6 @@ func TestOutfitService_Create(t *testing.T) {
 		outfit := minimalOutfit("Ghost Outfit", ghostTop, bottom, shoes)
 		assertOutfitValidationError(t, svc, outfit, "was not found in the closet")
 	})
-
-	// ── optional outfit fields ────────────────────────────────────────────────
 
 	t.Run("occasion/invalid value", func(t *testing.T) {
 		outfit := minimalOutfit("Bad Occasion", top, bottom, shoes)
@@ -403,8 +382,6 @@ func TestOutfitService_Create(t *testing.T) {
 		assertOutfitValidationError(t, svc, outfit, "notes must be at most 300 characters")
 	})
 
-	// ── cross-field warnings (warn, don't block) ──────────────────────────────
-
 	t.Run("warnings/season mismatch triggers warning but still saves", func(t *testing.T) {
 		winterTop := seedItem(t, itemRepo,
 			model.NewItemBuilder("Wool Turtleneck", model.Top).
@@ -431,7 +408,7 @@ func TestOutfitService_Create(t *testing.T) {
 	t.Run("warnings/no season warning when mandatory items have no seasons", func(t *testing.T) {
 		outfit := model.NewOutfitBuilder().
 			WithName("Seasonless").
-			WithItems([]model.Item{top, bottom, shoes}). // top/bottom/shoes have no seasons set
+			WithItems([]model.Item{top, bottom, shoes}).
 			AddSeason("summer").
 			Build()
 
@@ -464,7 +441,7 @@ func TestOutfitService_Create(t *testing.T) {
 		outfit := model.NewOutfitBuilder().
 			WithName("Casual Outfit at Work").
 			WithItems([]model.Item{casualTop, casualBottom, casualShoes}).
-			AddOccasion("work"). // outfit tagged work, but all items tagged casual/brunch
+			AddOccasion("work").
 			Build()
 
 		saved, warnings, err := svc.Create(&outfit)
@@ -480,7 +457,7 @@ func TestOutfitService_Create(t *testing.T) {
 	t.Run("warnings/no occasion warning when mandatory items have no occasions", func(t *testing.T) {
 		outfit := model.NewOutfitBuilder().
 			WithName("Free Spirit").
-			WithItems([]model.Item{top, bottom, shoes}). // top/bottom/shoes have no occasions set
+			WithItems([]model.Item{top, bottom, shoes}).
 			AddOccasion("work").
 			Build()
 
@@ -492,8 +469,6 @@ func TestOutfitService_Create(t *testing.T) {
 			t.Errorf("expected no warnings when items have no occasions, got: %v", warnings)
 		}
 	})
-
-	// ── multiple errors collected at once ─────────────────────────────────────
 
 	t.Run("multiple validation errors are collected", func(t *testing.T) {
 		outfit := model.Outfit{
@@ -520,7 +495,6 @@ func TestOutfitService_Create(t *testing.T) {
 	})
 }
 
-// assertOutfitValidationError fails the test if Create does not return an error containing wantFragment.
 func assertOutfitValidationError(t *testing.T, svc *service.OutfitService, outfit model.Outfit, wantFragment string) {
 	t.Helper()
 	_, _, err := svc.Create(&outfit)
@@ -532,7 +506,6 @@ func assertOutfitValidationError(t *testing.T, svc *service.OutfitService, outfi
 	}
 }
 
-// assertWarning fails the test if none of the warnings contain wantFragment.
 func assertWarning(t *testing.T, warnings []string, wantFragment string) {
 	t.Helper()
 	for _, w := range warnings {
