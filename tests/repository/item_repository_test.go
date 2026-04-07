@@ -232,3 +232,42 @@ func TestItemRepository_Update(t *testing.T) {
 		}
 	})
 }
+
+func TestItemRepository_Delete(t *testing.T) {
+	repo, cleanup := setupMongoRepo(t)
+	defer cleanup()
+
+	item := model.NewItemBuilder("Blue Jeans", model.Bottom).
+		WithColor("Blue").
+		WithBrand("Levi's").
+		WithCondition("new").
+		Build()
+
+	saved, err := repo.Save(&item)
+	if err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	t.Run("deletes existing item", func(t *testing.T) {
+		if err := repo.Delete(saved.ID.Hex()); err != nil {
+			t.Fatalf("Delete() error = %v", err)
+		}
+
+		_, err := repo.FindByID(saved.ID.Hex())
+		if err == nil {
+			t.Fatal("FindByID() expected error after Delete, got nil")
+		}
+	})
+
+	t.Run("unknown id returns no error", func(t *testing.T) {
+		if err := repo.Delete("000000000000000000000000"); err != nil {
+			t.Errorf("Delete() unexpected error for unknown ID: %v", err)
+		}
+	})
+
+	t.Run("invalid id returns error", func(t *testing.T) {
+		if err := repo.Delete("not-a-valid-id"); err == nil {
+			t.Fatal("Delete() expected error for invalid ID, got nil")
+		}
+	})
+}
