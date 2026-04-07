@@ -115,3 +115,120 @@ func TestItemRepository_FindAll(t *testing.T) {
 		}
 	}
 }
+
+func TestItemRepository_FindByID(t *testing.T) {
+	repo, cleanup := setupMongoRepo(t)
+	defer cleanup()
+
+	item := model.NewItemBuilder("Black Hoodie", model.Outerwear).
+		WithColor("Black").
+		WithBrand("Nike").
+		WithCondition("used").
+		Build()
+
+	saved, err := repo.Save(&item)
+	if err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	t.Run("found", func(t *testing.T) {
+		found, err := repo.FindByID(saved.ID.Hex())
+		if err != nil {
+			t.Fatalf("FindByID() error = %v", err)
+		}
+		if found.ID != saved.ID {
+			t.Errorf("ID = %v, want %v", found.ID, saved.ID)
+		}
+		if found.Name != saved.Name {
+			t.Errorf("Name = %q, want %q", found.Name, saved.Name)
+		}
+		if found.Category != saved.Category {
+			t.Errorf("Category = %q, want %q", found.Category, saved.Category)
+		}
+		if found.Color != saved.Color {
+			t.Errorf("Color = %q, want %q", found.Color, saved.Color)
+		}
+		if found.Brand != saved.Brand {
+			t.Errorf("Brand = %q, want %q", found.Brand, saved.Brand)
+		}
+		if found.Condition != saved.Condition {
+			t.Errorf("Condition = %q, want %q", found.Condition, saved.Condition)
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		_, err := repo.FindByID("000000000000000000000000")
+		if err == nil {
+			t.Fatal("FindByID() expected error for unknown ID, got nil")
+		}
+	})
+
+	t.Run("invalid id", func(t *testing.T) {
+		_, err := repo.FindByID("not-a-valid-id")
+		if err == nil {
+			t.Fatal("FindByID() expected error for invalid ID, got nil")
+		}
+	})
+}
+
+func TestItemRepository_Update(t *testing.T) {
+	repo, cleanup := setupMongoRepo(t)
+	defer cleanup()
+
+	item := model.NewItemBuilder("White T-Shirt", model.Top).
+		WithColor("White").
+		WithBrand("Zara").
+		WithCondition("new").
+		Build()
+
+	saved, err := repo.Save(&item)
+	if err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	t.Run("updates fields and persists", func(t *testing.T) {
+		updated := model.NewItemBuilder("Black T-Shirt", model.Top).
+			WithColor("Black").
+			WithBrand("H&M").
+			WithCondition("used").
+			Build()
+
+		if err := repo.Update(saved.ID.Hex(), &updated); err != nil {
+			t.Fatalf("Update() error = %v", err)
+		}
+
+		found, err := repo.FindByID(saved.ID.Hex())
+		if err != nil {
+			t.Fatalf("FindByID() after Update error = %v", err)
+		}
+		if found.Name != updated.Name {
+			t.Errorf("Name = %q, want %q", found.Name, updated.Name)
+		}
+		if found.Color != updated.Color {
+			t.Errorf("Color = %q, want %q", found.Color, updated.Color)
+		}
+		if found.Brand != updated.Brand {
+			t.Errorf("Brand = %q, want %q", found.Brand, updated.Brand)
+		}
+		if found.Condition != updated.Condition {
+			t.Errorf("Condition = %q, want %q", found.Condition, updated.Condition)
+		}
+		if found.ID != saved.ID {
+			t.Errorf("ID changed after update: got %v, want %v", found.ID, saved.ID)
+		}
+	})
+
+	t.Run("unknown id returns no error", func(t *testing.T) {
+		patch := model.NewItemBuilder("Ghost Item", model.Top).Build()
+		if err := repo.Update("000000000000000000000000", &patch); err != nil {
+			t.Errorf("Update() unexpected error for unknown ID: %v", err)
+		}
+	})
+
+	t.Run("invalid id returns error", func(t *testing.T) {
+		patch := model.NewItemBuilder("Ghost Item", model.Top).Build()
+		if err := repo.Update("not-a-valid-id", &patch); err == nil {
+			t.Fatal("Update() expected error for invalid ID, got nil")
+		}
+	})
+}

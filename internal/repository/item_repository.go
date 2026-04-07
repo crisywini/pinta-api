@@ -52,3 +52,54 @@ func (r *ItemRepository) FindAll() ([]model.Item, error) {
 	}
 	return items, nil
 }
+
+func (r *ItemRepository) FindByID(id string) (*model.Item, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var item model.Item
+
+	err = r.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&item)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &item, nil
+}
+
+func (r *ItemRepository) Update(id string, updated *model.Item) error {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	filter := bson.M{"_id": objectID}
+	update := bson.M{
+		"$set": bson.M{
+			"name":       updated.Name,
+			"category":   updated.Category,
+			"color":      updated.Color,
+			"brand":      updated.Brand,
+			"material":   updated.Material,
+			"season":     updated.Season,
+			"occasion":   updated.Occasion,
+			"photo":      updated.Photo,
+			"condition":  updated.Condition,
+			"wear_count": updated.WearCount,
+		},
+	}
+
+	_, err = r.collection.UpdateOne(ctx, filter, update)
+	return err
+
+}
