@@ -50,48 +50,40 @@ func applyItemDefaults(item *model.Item) {
 func validateItem(item *model.Item) error {
 	var errs []string
 
-	// name: required, 2–50 chars, letters/digits/spaces/hyphens/apostrophes only
 	if len(item.Name) < 2 || len(item.Name) > 50 {
 		errs = append(errs, "name must be between 2 and 50 characters")
 	} else if !nameRegex.MatchString(item.Name) {
 		errs = append(errs, "name may only contain letters, digits, spaces, hyphens and apostrophes")
 	}
 
-	// category: required, must be one of the known categories
 	if !item.Category.IsValid() {
 		errs = append(errs, "category must be one of: top, bottom, shoes, hosiery, outerwear, accessory, jewelry, innerwear, fragrance")
 	}
 
-	// color: required, 2–30 chars
 	if len(item.Color) < 2 || len(item.Color) > 30 {
 		errs = append(errs, "color must be between 2 and 30 characters")
 	}
 
-	// brand: optional, 2–50 chars when provided
 	if item.Brand != "" && (len(item.Brand) < 2 || len(item.Brand) > 50) {
 		errs = append(errs, "brand must be between 2 and 50 characters when provided")
 	}
 
-	// material: optional, 2–50 chars when provided
 	if item.Material != "" && (len(item.Material) < 2 || len(item.Material) > 50) {
 		errs = append(errs, "material must be between 2 and 50 characters when provided")
 	}
 
-	// season: optional, each value must be spring/summer/fall/winter
 	for _, s := range item.Season {
 		if !validSeasons[s] {
 			errs = append(errs, fmt.Sprintf("invalid season %q: allowed values are spring, summer, fall, winter", s))
 		}
 	}
 
-	// occasion: optional, each value must be a known occasion
 	for _, o := range item.Occasion {
 		if !validOccasions[o] {
 			errs = append(errs, fmt.Sprintf("invalid occasion %q: allowed values are work, casual, brunch, formal, party, sport, date", o))
 		}
 	}
 
-	// photo: optional, must be a valid http/https URL when provided
 	if item.Photo != "" {
 		u, err := url.ParseRequestURI(item.Photo)
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
@@ -99,7 +91,6 @@ func validateItem(item *model.Item) error {
 		}
 	}
 
-	// condition: optional, must be one of the known values when provided
 	if item.Condition != "" && !validConditions[item.Condition] {
 		errs = append(errs, "condition must be one of: new, good, fair, retired")
 	}
