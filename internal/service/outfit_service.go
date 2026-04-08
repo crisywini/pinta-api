@@ -20,6 +20,49 @@ func NewOutfitService(outfitRepository *repository.OutfitRepository, itemReposit
 	}
 }
 
+func (s *OutfitService) GetById(id string) (*model.Outfit, error) {
+	if id == "" {
+		return nil, fmt.Errorf("Missing outfit id")
+	}
+
+	outfit, err := s.repository.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return outfit, nil
+}
+
+func (s *OutfitService) GetAll() ([]model.Outfit, error) {
+	return s.repository.FindAll()
+}
+
+func (s *OutfitService) Update(id string, updated *model.Outfit) ([]string, error) {
+	if id == "" {
+		return nil, fmt.Errorf("Missing outfit id")
+	}
+
+	if err := validateOutfit(updated); err != nil {
+		return nil, err
+	}
+
+	if err := s.verifyItemsInCloset(updated.Items); err != nil {
+		return nil, err
+	}
+
+	warnings := crossFieldWarnings(updated)
+
+	return warnings, s.repository.Update(id, updated)
+}
+
+func (s *OutfitService) DeleteById(id string) error {
+	if id == "" {
+		return fmt.Errorf("Missing outfit id")
+	}
+
+	return s.repository.Delete(id)
+}
+
 func (s *OutfitService) Create(outfit *model.Outfit) (*model.Outfit, []string, error) {
 	if err := validateOutfit(outfit); err != nil {
 		return nil, nil, err
