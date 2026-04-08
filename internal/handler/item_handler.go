@@ -24,7 +24,7 @@ func NewItemHandler(service *service.ItemService) *ItemHandler {
 func (h *ItemHandler) PostItem(c *gin.Context) {
 	var item *model.Item
 
-	if err := c.ShouldBindBodyWith(&item, binding.JSON); err != nil {
+	if err := c.ShouldBindBodyWith(&item, binding.JSON); err == nil {
 		response, serviceError := h.service.Create(item)
 
 		if serviceError != nil {
@@ -37,10 +37,15 @@ func (h *ItemHandler) PostItem(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"id": response.ID.Hex(),
 		})
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Malformed item",
+			"error":   err.Error(),
+		})
 	}
 }
 
-func (h *ItemHandler) GetAllItems(c *gin.Context) {
+func (h *ItemHandler) GetItemByID(c *gin.Context) {
 
 	itemId := c.Query("id")
 
@@ -50,4 +55,20 @@ func (h *ItemHandler) GetAllItems(c *gin.Context) {
 		})
 	}
 
+	item, err := h.service.GetById(itemId)
+
+	if err != nil {
+		c.JSON(http.StatusNotFound, err.Error())
+	}
+
+	c.JSON(http.StatusOK, item)
+}
+
+func (h *ItemHandler) GetAllItems(c *gin.Context) {
+	allItems, _ := h.service.GetAll()
+
+	c.JSON(http.StatusOK, gin.H{
+		"count": len(allItems),
+		"items": allItems,
+	})
 }
