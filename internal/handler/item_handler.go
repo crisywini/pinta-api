@@ -47,7 +47,7 @@ func (h *ItemHandler) PostItem(c *gin.Context) {
 
 func (h *ItemHandler) GetItemByID(c *gin.Context) {
 
-	itemId := c.Query("id")
+	itemId := c.Param("id")
 
 	if len(itemId) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -75,7 +75,7 @@ func (h *ItemHandler) GetAllItems(c *gin.Context) {
 
 func (h *ItemHandler) PutItem(c *gin.Context) {
 
-	id := c.Query("id")
+	id := c.Param("id")
 	var updatedItem *model.Item
 	if err := c.ShouldBindBodyWith(&updatedItem, binding.JSON); err == nil {
 		serviceError := h.service.Update(id, updatedItem)
@@ -94,7 +94,7 @@ func (h *ItemHandler) PutItem(c *gin.Context) {
 }
 
 func (h *ItemHandler) DeleteItem(c *gin.Context) {
-	id := c.Query("id")
+	id := c.Param("id")
 
 	if err := h.service.DeleteById(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{

@@ -35,7 +35,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -55,14 +54,10 @@ import (
 
 // setupRouter wires the full dependency stack and returns a configured *gin.Engine.
 //
-// Call pattern:
-//
-//	router, cleanup := setupRouter(t)
-//	defer cleanup()
-//
-// Each top-level test function gets its own isolated MongoDB container so that
-// subtests within it share state (seeded items remain visible across subtests
-// in the same function), but different test functions are fully isolated.
+// The handlers now read IDs from path parameters (c.Param("id")), so routes are
+// registered with the /:id segment — e.g. GET /items/:id — instead of using a
+// query string.  Gin's router ensures the segment is always non-empty when the
+// route matches, making an empty-id condition unreachable at the handler level.
 func setupRouter(t *testing.T) (*gin.Engine, func()) {
 	t.Helper()
 
@@ -92,18 +87,13 @@ func setupRouter(t *testing.T) (*gin.Engine, func()) {
 	svc := service.NewItemService(repo)
 	h := handler.NewItemHandler(svc)
 
-	// gin.New() — a bare engine with no built-in middleware (no Logger, no Recovery).
-	// Use gin.Default() if you need those two added automatically.
 	router := gin.New()
 	router.POST("/items", h.PostItem)
 	router.GET("/items", h.GetAllItems)
-
-	// GetItemByID, PutItem, and DeleteItem each read their target via the ?id=
-	// query parameter (c.Query("id")), not a path segment.  We register them
-	// on /item (singular) to avoid a route conflict with GET /items.
-	router.GET("/item", h.GetItemByID)
-	router.PUT("/item", h.PutItem)
-	router.DELETE("/item", h.DeleteItem)
+	// IDs come from the path segment now that the handler uses c.Param("id").
+	router.GET("/items/:id", h.GetItemByID)
+	router.PUT("/items/:id", h.PutItem)
+	router.DELETE("/items/:id", h.DeleteItem)
 
 	cleanup := func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -128,9 +118,6 @@ func jsonBody(t *testing.T, v any) *bytes.Buffer {
 
 // seedItem posts a minimal valid item via POST /items and returns the assigned
 // MongoDB ID (hex string).  It fails the test if the server rejects the item.
-//
-// This is a convenient way to set up pre-existing data for subtests that need
-// an item to already exist (GetItemByID, PutItem, DeleteItem happy paths).
 func seedItem(t *testing.T, router *gin.Engine) string {
 	t.Helper()
 
@@ -188,8 +175,6 @@ func TestItemHandler_PostItem(t *testing.T) {
 	})
 
 	t.Run("malformed JSON returns 400", func(t *testing.T) {
-		// The handler calls ShouldBindBodyWith which returns an error on invalid JSON,
-		// causing it to respond with 400 Bad Request.
 		req := httptest.NewRequest(http.MethodPost, "/items",
 			bytes.NewBufferString("{not valid json"))
 		req.Header.Set("Content-Type", "application/json")
@@ -204,9 +189,7 @@ func TestItemHandler_PostItem(t *testing.T) {
 
 	t.Run("validation failure returns 500 with message", func(t *testing.T) {
 		// The name "x" is too short — the service returns a validation error.
-		// PostItem maps service errors to 500 InternalServerError (as currently
-		// coded).  Ideally this would be 422 Unprocessable Entity, but we test
-		// the actual handler behaviour, not the ideal.
+		// PostItem maps service errors to 500 InternalServerError (as currently coded).
 		item := model.Item{Name: "x", Category: model.Top, Color: "White"}
 
 		req := httptest.NewRequest(http.MethodPost, "/items", jsonBody(t, item))
@@ -250,8 +233,7 @@ func TestItemHandler_GetAllItems(t *testing.T) {
 			t.Fatalf("unmarshal: %v", err)
 		}
 
-		// JSON numbers are decoded as float64 by encoding/json when the target
-		// type is map[string]any, so cast accordingly.
+		// JSON numbers decode as float64 when the target type is map[string]any.
 		count, ok := resp["count"].(float64)
 		if !ok {
 			t.Fatalf("'count' field missing or wrong type; body: %s", w.Body.String())
@@ -262,9 +244,6 @@ func TestItemHandler_GetAllItems(t *testing.T) {
 	})
 
 	t.Run("returns all seeded items", func(t *testing.T) {
-		// Seed two more items into the same container that is shared across
-		// subtests.  The empty-database subtest ran first, so the DB had 0 items.
-		// After seeding here we expect at least 2.
 		seedItem(t, router)
 		seedItem(t, router)
 
@@ -297,11 +276,11 @@ func TestItemHandler_GetItemByID(t *testing.T) {
 	router, cleanup := setupRouter(t)
 	defer cleanup()
 
-	// Seed one item to use in the happy-path subtest.
 	id := seedItem(t, router)
 
 	t.Run("returns 200 and item body for valid existing id", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodGet, "/item?id="+id, nil)
+		// ID is now a path segment: GET /items/:id
+		req := httptest.NewRequest(http.MethodGet, "/items/"+id, nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -311,26 +290,21 @@ func TestItemHandler_GetItemByID(t *testing.T) {
 		}
 	})
 
-	t.Run("missing id param returns 400", func(t *testing.T) {
-		// The handler writes 400 when the ?id query param is absent.
-		// Note: the handler is missing a `return` after this write, so it
-		// continues to call the service (which also fails) and writes additional
-		// responses — but Gin only forwards the first WriteHeader call to the
-		// underlying ResponseWriter, so the recorder captures 400.
-		req := httptest.NewRequest(http.MethodGet, "/item", nil)
+	t.Run("unknown id returns 404", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/items/000000000000000000000000", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
 
-		if w.Code != http.StatusBadRequest {
-			t.Errorf("status = %d, want 400; body: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusNotFound {
+			t.Errorf("status = %d, want 404; body: %s", w.Code, w.Body.String())
 		}
 	})
 
-	t.Run("unknown id returns 404", func(t *testing.T) {
-		// A well-formed ObjectID that does not exist in the database.
-		req := httptest.NewRequest(http.MethodGet,
-			"/item?id=000000000000000000000000", nil)
+	t.Run("invalid id format returns 404", func(t *testing.T) {
+		// The repository fails to parse a non-hex string as ObjectID; the service
+		// propagates the error and the handler maps it to 404.
+		req := httptest.NewRequest(http.MethodGet, "/items/not-a-valid-id", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -355,9 +329,7 @@ func TestItemHandler_PutItem(t *testing.T) {
 			WithCondition("fair").
 			Build()
 
-		req := httptest.NewRequest(http.MethodPut,
-			fmt.Sprintf("/item?id=%s", id),
-			jsonBody(t, updated))
+		req := httptest.NewRequest(http.MethodPut, "/items/"+id, jsonBody(t, updated))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -365,16 +337,14 @@ func TestItemHandler_PutItem(t *testing.T) {
 
 		// On success, PutItem does not call c.JSON — the handler exits without
 		// writing an explicit response.  Gin leaves the status at its default (200)
-		// and the body is empty.  This is a handler bug (no 200 OK body), but
-		// we verify the actual, current behaviour.
+		// and the body is empty.
 		if w.Code != http.StatusOK {
 			t.Errorf("status = %d, want 200; body: %s", w.Code, w.Body.String())
 		}
 	})
 
 	t.Run("malformed JSON returns 400", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPut,
-			fmt.Sprintf("/item?id=%s", id),
+		req := httptest.NewRequest(http.MethodPut, "/items/"+id,
 			bytes.NewBufferString("{bad json"))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -389,9 +359,7 @@ func TestItemHandler_PutItem(t *testing.T) {
 	t.Run("invalid item body returns 500", func(t *testing.T) {
 		invalid := model.Item{Name: "x", Category: model.Top, Color: "White"}
 
-		req := httptest.NewRequest(http.MethodPut,
-			fmt.Sprintf("/item?id=%s", id),
-			jsonBody(t, invalid))
+		req := httptest.NewRequest(http.MethodPut, "/items/"+id, jsonBody(t, invalid))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
@@ -412,7 +380,7 @@ func TestItemHandler_DeleteItem(t *testing.T) {
 	t.Run("deletes existing item and returns 204", func(t *testing.T) {
 		id := seedItem(t, router)
 
-		req := httptest.NewRequest(http.MethodDelete, "/item?id="+id, nil)
+		req := httptest.NewRequest(http.MethodDelete, "/items/"+id, nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -423,10 +391,8 @@ func TestItemHandler_DeleteItem(t *testing.T) {
 	})
 
 	t.Run("unknown id is a no-op and returns 204", func(t *testing.T) {
-		// The repository's Delete treats a missing document as a success (no error).
-		// So the handler responds 204 even when no document matched.
-		req := httptest.NewRequest(http.MethodDelete,
-			"/item?id=000000000000000000000000", nil)
+		// The repository treats a missing document as a success, so 204 is returned.
+		req := httptest.NewRequest(http.MethodDelete, "/items/000000000000000000000000", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -436,9 +402,10 @@ func TestItemHandler_DeleteItem(t *testing.T) {
 		}
 	})
 
-	t.Run("empty id returns 500 because service rejects it", func(t *testing.T) {
-		// service.DeleteById("") returns an error, which the handler maps to 500.
-		req := httptest.NewRequest(http.MethodDelete, "/item", nil)
+	t.Run("invalid id format returns 500", func(t *testing.T) {
+		// The repository fails to parse the hex and returns an error, which the
+		// handler maps to 500.
+		req := httptest.NewRequest(http.MethodDelete, "/items/not-a-valid-id", nil)
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
