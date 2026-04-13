@@ -8,6 +8,7 @@ import (
 	"github.com/crisywini/pinta-api/internal/handler"
 	"github.com/crisywini/pinta-api/internal/repository"
 	"github.com/crisywini/pinta-api/internal/service"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -15,7 +16,12 @@ import (
 
 func main() {
 	r := gin.Default()
-
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowCredentials: true,
+	}))
 	var databaseUri string
 	if databaseUri = os.Getenv("MONGODB_URI"); databaseUri == "" {
 		log.Fatal("You must set the MONGODB_URI for mongodb connection")
