@@ -4,6 +4,9 @@ test:
 	go test -v ./tests/...
 
 run: 
+	docker-compose up -d
+
+start: 
 	docker-compose up --build -d 
 
 seedData: 
@@ -11,3 +14,6 @@ seedData:
 
 tearDown: 
 	docker-compose down -v
+
+stop: 
+	docker-compose stop
