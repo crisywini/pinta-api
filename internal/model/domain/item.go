@@ -37,6 +37,14 @@ const (
 	Fragance   Category = "fragance"
 )
 
+func (c Category) IsValid() bool {
+	switch c {
+	case Top, Bottom, Shoes, Hosiery, Outerwear, Accesories, Jewelry, Innerwear, Fragance:
+		return true
+	}
+	return false
+}
+
 func NewItemBuilder(name string, category Category) *ItemBuilder {
 	return &ItemBuilder{
 		item: Item{
