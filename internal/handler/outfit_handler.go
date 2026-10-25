@@ -23,7 +23,7 @@ func (h *OutfitHandler) PostOutfit(c *gin.Context) {
 	var outfit *domain.Outfit
 
 	if err := c.ShouldBindBodyWithJSON(&outfit); err == nil {
-		created, warns, serviceError := h.service.Create(outfit)
+		created, warns, serviceError := h.service.Create(c, outfit)
 
 		if serviceError != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -47,7 +47,7 @@ func (h *OutfitHandler) PostOutfit(c *gin.Context) {
 
 func (h *OutfitHandler) GetOutfitById(c *gin.Context) {
 	id := c.Param("id")
-	if outfit, err := h.service.GetById(id); err == nil {
+	if outfit, err := h.service.GetById(c, id); err == nil {
 		c.JSON(http.StatusOK, outfit)
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -58,7 +58,7 @@ func (h *OutfitHandler) GetOutfitById(c *gin.Context) {
 }
 
 func (h *OutfitHandler) GetAllOutfits(c *gin.Context) {
-	outfits := h.service.GetAll()
+	outfits := h.service.GetAll(c)
 
 	c.JSON(http.StatusOK, gin.H{
 		"count": len(outfits),
@@ -69,7 +69,7 @@ func (h *OutfitHandler) GetAllOutfits(c *gin.Context) {
 func (h *OutfitHandler) DeleteOutfitById(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.service.DeleteById(id); err == nil {
+	if err := h.service.DeleteById(c, id); err == nil {
 		c.JSON(http.StatusNoContent, gin.H{})
 	} else {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -84,7 +84,7 @@ func (h *OutfitHandler) PutOutfit(c *gin.Context) {
 	var updated *domain.Outfit
 
 	if err := c.ShouldBindBodyWithJSON(&updated); err == nil {
-		warns, serviceError := h.service.Update(id, updated)
+		warns, serviceError := h.service.Update(c, id, updated)
 
 		if serviceError == nil {
 			c.JSON(http.StatusCreated, gin.H{

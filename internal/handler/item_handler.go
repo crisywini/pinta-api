@@ -25,7 +25,7 @@ func (h *ItemHandler) PostItem(c *gin.Context) {
 	var item *domain.Item
 
 	if err := c.ShouldBindBodyWith(&item, binding.JSON); err == nil {
-		response, serviceError := h.service.Create(item)
+		response, serviceError := h.service.Create(c, item)
 
 		if serviceError != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -55,7 +55,7 @@ func (h *ItemHandler) GetItemByID(c *gin.Context) {
 		})
 	}
 
-	item, err := h.service.GetById(itemId)
+	item, err := h.service.GetById(c, itemId)
 
 	if err != nil {
 		c.JSON(http.StatusNotFound, err.Error())
@@ -65,7 +65,7 @@ func (h *ItemHandler) GetItemByID(c *gin.Context) {
 }
 
 func (h *ItemHandler) GetAllItems(c *gin.Context) {
-	allItems := h.service.GetAll()
+	allItems := h.service.GetAll(c)
 
 	c.JSON(http.StatusOK, gin.H{
 		"count": len(allItems),
@@ -78,7 +78,7 @@ func (h *ItemHandler) PutItem(c *gin.Context) {
 	id := c.Param("id")
 	var updatedItem *domain.Item
 	if err := c.ShouldBindBodyWith(&updatedItem, binding.JSON); err == nil {
-		serviceError := h.service.Update(id, updatedItem)
+		serviceError := h.service.Update(c, id, updatedItem)
 		if serviceError != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": "Error while updating item",
@@ -96,7 +96,7 @@ func (h *ItemHandler) PutItem(c *gin.Context) {
 func (h *ItemHandler) DeleteItem(c *gin.Context) {
 	id := c.Param("id")
 
-	if err := h.service.DeleteById(id); err != nil {
+	if err := h.service.DeleteById(c, id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Error while deleting item",
 			"error":   err.Error(),

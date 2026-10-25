@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -20,12 +21,12 @@ func NewOutfitService(outfitRepository repository.OutfitRepository, itemReposito
 	}
 }
 
-func (s *OutfitService) GetById(id string) (*domain.Outfit, error) {
+func (s *OutfitService) GetById(ctx context.Context, id string) (*domain.Outfit, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Missing outfit id")
 	}
 
-	outfit, err := s.repository.FindByID(id)
+	outfit, err := s.repository.FindByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -33,11 +34,11 @@ func (s *OutfitService) GetById(id string) (*domain.Outfit, error) {
 	return outfit, nil
 }
 
-func (s *OutfitService) GetAll() []domain.Outfit {
-	return s.repository.FindAll()
+func (s *OutfitService) GetAll(ctx context.Context) []domain.Outfit {
+	return s.repository.FindAll(ctx)
 }
 
-func (s *OutfitService) Update(id string, updated *domain.Outfit) ([]string, error) {
+func (s *OutfitService) Update(ctx context.Context, id string, updated *domain.Outfit) ([]string, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Missing outfit id")
 	}
@@ -46,42 +47,42 @@ func (s *OutfitService) Update(id string, updated *domain.Outfit) ([]string, err
 		return nil, err
 	}
 
-	if err := s.verifyItemsInCloset(updated.Items); err != nil {
+	if err := s.verifyItemsInCloset(ctx, updated.Items); err != nil {
 		return nil, err
 	}
 
 	warnings := crossFieldWarnings(updated)
 
-	return warnings, s.repository.Update(id, updated)
+	return warnings, s.repository.Update(ctx, id, updated)
 }
 
-func (s *OutfitService) DeleteById(id string) error {
+func (s *OutfitService) DeleteById(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("Missing outfit id")
 	}
 
-	return s.repository.Delete(id)
+	return s.repository.Delete(ctx, id)
 }
 
-func (s *OutfitService) Create(outfit *domain.Outfit) (*domain.Outfit, []string, error) {
+func (s *OutfitService) Create(ctx context.Context, outfit *domain.Outfit) (*domain.Outfit, []string, error) {
 	if err := validateOutfit(outfit); err != nil {
 		return nil, nil, err
 	}
 
-	if err := s.verifyItemsInCloset(outfit.Items); err != nil {
+	if err := s.verifyItemsInCloset(ctx, outfit.Items); err != nil {
 		return nil, nil, err
 	}
 
 	warnings := crossFieldWarnings(outfit)
 
-	saved, err := s.repository.Save(outfit)
+	saved, err := s.repository.Save(ctx, outfit)
 	if err != nil {
 		return nil, warnings, err
 	}
 	return saved, warnings, nil
 }
 
-func (s *OutfitService) verifyItemsInCloset(items []domain.Item) error {
+func (s *OutfitService) verifyItemsInCloset(ctx context.Context, items []domain.Item) error {
 	seen := make(map[string]bool, len(items))
 	for _, item := range items {
 		if len(item.ID) == 0 {
@@ -92,7 +93,7 @@ func (s *OutfitService) verifyItemsInCloset(items []domain.Item) error {
 			return fmt.Errorf("item %q appears more than once in the outfit", item.Name)
 		}
 		seen[id] = true
-		if _, err := s.itemRepository.FindByID(id); err != nil {
+		if _, err := s.itemRepository.FindByID(ctx, id); err != nil {
 			return fmt.Errorf("item %q (id: %s) was not found in the closet", item.Name, id)
 		}
 	}
