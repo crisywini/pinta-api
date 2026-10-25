@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/crisywini/pinta-api/internal/model"
+	"github.com/crisywini/pinta-api/internal/adapter/repository/mongodb/model"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"

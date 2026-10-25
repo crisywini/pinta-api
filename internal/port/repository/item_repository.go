@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/crisywini/pinta-api/internal/model/domain"
+	"github.com/crisywini/pinta-api/internal/domain"
 )
 
 type ItemRepository interface {

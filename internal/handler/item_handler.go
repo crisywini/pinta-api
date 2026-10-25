@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/crisywini/pinta-api/internal/model/domain"
+	"github.com/crisywini/pinta-api/internal/domain"
 	"github.com/crisywini/pinta-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
