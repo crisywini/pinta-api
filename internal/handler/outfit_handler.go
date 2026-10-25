@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/crisywini/pinta-api/internal/model"
+	"github.com/crisywini/pinta-api/internal/domain"
 	"github.com/crisywini/pinta-api/internal/service"
 	"github.com/gin-gonic/gin"
 )
@@ -20,7 +20,7 @@ func NewOutfitHandler(service *service.OutfitService) *OutfitHandler {
 
 func (h *OutfitHandler) PostOutfit(c *gin.Context) {
 
-	var outfit *model.Outfit
+	var outfit *domain.Outfit
 
 	if err := c.ShouldBindBodyWithJSON(&outfit); err == nil {
 		created, warns, serviceError := h.service.Create(outfit)
@@ -34,7 +34,7 @@ func (h *OutfitHandler) PostOutfit(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusCreated, gin.H{
-			"outfit":   created.ID.Hex(),
+			"outfit":   created.ID,
 			"warnings": warns,
 		})
 	} else {
@@ -58,15 +58,8 @@ func (h *OutfitHandler) GetOutfitById(c *gin.Context) {
 }
 
 func (h *OutfitHandler) GetAllOutfits(c *gin.Context) {
-	outfits, err := h.service.GetAll()
+	outfits := h.service.GetAll()
 
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Error while getting the outfits",
-			"error":   err.Error(),
-		})
-		return
-	}
 	c.JSON(http.StatusOK, gin.H{
 		"count": len(outfits),
 		"items": outfits,
@@ -88,7 +81,7 @@ func (h *OutfitHandler) DeleteOutfitById(c *gin.Context) {
 
 func (h *OutfitHandler) PutOutfit(c *gin.Context) {
 	id := c.Param("id")
-	var updated *model.Outfit
+	var updated *domain.Outfit
 
 	if err := c.ShouldBindBodyWithJSON(&updated); err == nil {
 		warns, serviceError := h.service.Update(id, updated)
