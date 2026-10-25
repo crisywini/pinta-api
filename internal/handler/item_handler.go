@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/crisywini/pinta-api/internal/model"
+	"github.com/crisywini/pinta-api/internal/model/domain"
 	"github.com/crisywini/pinta-api/internal/service"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -22,7 +22,7 @@ func NewItemHandler(service *service.ItemService) *ItemHandler {
 // Create a new item
 
 func (h *ItemHandler) PostItem(c *gin.Context) {
-	var item *model.Item
+	var item *domain.Item
 
 	if err := c.ShouldBindBodyWith(&item, binding.JSON); err == nil {
 		response, serviceError := h.service.Create(item)
@@ -35,7 +35,7 @@ func (h *ItemHandler) PostItem(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"id": response.ID.Hex(),
+			"id": response.ID,
 		})
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -65,7 +65,7 @@ func (h *ItemHandler) GetItemByID(c *gin.Context) {
 }
 
 func (h *ItemHandler) GetAllItems(c *gin.Context) {
-	allItems, _ := h.service.GetAll()
+	allItems := h.service.GetAll()
 
 	c.JSON(http.StatusOK, gin.H{
 		"count": len(allItems),
@@ -76,7 +76,7 @@ func (h *ItemHandler) GetAllItems(c *gin.Context) {
 func (h *ItemHandler) PutItem(c *gin.Context) {
 
 	id := c.Param("id")
-	var updatedItem *model.Item
+	var updatedItem *domain.Item
 	if err := c.ShouldBindBodyWith(&updatedItem, binding.JSON); err == nil {
 		serviceError := h.service.Update(id, updatedItem)
 		if serviceError != nil {
