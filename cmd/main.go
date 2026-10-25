@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/crisywini/pinta-api/internal/handler"
-	"github.com/crisywini/pinta-api/internal/repository"
+	"github.com/crisywini/pinta-api/internal/port/repository"
 	"github.com/crisywini/pinta-api/internal/service"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"

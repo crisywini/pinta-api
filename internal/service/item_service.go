@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -29,20 +30,20 @@ func NewItemService(repository repository.ItemRepository) *ItemService {
 	return &ItemService{repository: repository}
 }
 
-func (s *ItemService) Create(item *domain.Item) (*domain.Item, error) {
+func (s *ItemService) Create(ctx context.Context, item *domain.Item) (*domain.Item, error) {
 	if err := validateItem(item); err != nil {
 		return nil, err
 	}
 
-	return s.repository.Save(item)
+	return s.repository.Save(ctx, item)
 }
 
-func (s *ItemService) GetById(id string) (*domain.Item, error) {
+func (s *ItemService) GetById(ctx context.Context, id string) (*domain.Item, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Missing item id")
 	}
 
-	item, err := s.repository.FindByID(id)
+	item, err := s.repository.FindByID(ctx, id)
 
 	if err != nil {
 		return nil, err
@@ -51,11 +52,11 @@ func (s *ItemService) GetById(id string) (*domain.Item, error) {
 	return item, nil
 }
 
-func (s *ItemService) GetAll() []domain.Item {
-	return s.repository.FindAll()
+func (s *ItemService) GetAll(ctx context.Context) []domain.Item {
+	return s.repository.FindAll(ctx)
 }
 
-func (s *ItemService) Update(id string, updated *domain.Item) error {
+func (s *ItemService) Update(ctx context.Context, id string, updated *domain.Item) error {
 
 	if id == "" {
 		return fmt.Errorf("Missing item id")
@@ -65,14 +66,14 @@ func (s *ItemService) Update(id string, updated *domain.Item) error {
 		return validItem
 	}
 
-	return s.repository.Update(id, updated)
+	return s.repository.Update(ctx, id, updated)
 }
 
-func (s *ItemService) DeleteById(id string) error {
+func (s *ItemService) DeleteById(ctx context.Context, id string) error {
 	if id == "" {
 		return fmt.Errorf("Missing item id")
 	}
-	return s.repository.Delete(id)
+	return s.repository.Delete(ctx, id)
 }
 
 func validateItem(item *domain.Item) error {
