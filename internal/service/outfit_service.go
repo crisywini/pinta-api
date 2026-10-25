@@ -4,23 +4,23 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/crisywini/pinta-api/internal/model"
-	"github.com/crisywini/pinta-api/internal/repository"
+	"github.com/crisywini/pinta-api/internal/domain"
+	"github.com/crisywini/pinta-api/internal/port/repository"
 )
 
 type OutfitService struct {
-	repository     *repository.OutfitRepository
-	itemRepository *repository.ItemRepository
+	repository     repository.OutfitRepository
+	itemRepository repository.ItemRepository
 }
 
-func NewOutfitService(outfitRepository *repository.OutfitRepository, itemRepository *repository.ItemRepository) *OutfitService {
+func NewOutfitService(outfitRepository repository.OutfitRepository, itemRepository repository.ItemRepository) *OutfitService {
 	return &OutfitService{
 		repository:     outfitRepository,
 		itemRepository: itemRepository,
 	}
 }
 
-func (s *OutfitService) GetById(id string) (*model.Outfit, error) {
+func (s *OutfitService) GetById(id string) (*domain.Outfit, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Missing outfit id")
 	}
@@ -33,11 +33,11 @@ func (s *OutfitService) GetById(id string) (*model.Outfit, error) {
 	return outfit, nil
 }
 
-func (s *OutfitService) GetAll() ([]model.Outfit, error) {
+func (s *OutfitService) GetAll() []domain.Outfit {
 	return s.repository.FindAll()
 }
 
-func (s *OutfitService) Update(id string, updated *model.Outfit) ([]string, error) {
+func (s *OutfitService) Update(id string, updated *domain.Outfit) ([]string, error) {
 	if id == "" {
 		return nil, fmt.Errorf("Missing outfit id")
 	}
@@ -63,7 +63,7 @@ func (s *OutfitService) DeleteById(id string) error {
 	return s.repository.Delete(id)
 }
 
-func (s *OutfitService) Create(outfit *model.Outfit) (*model.Outfit, []string, error) {
+func (s *OutfitService) Create(outfit *domain.Outfit) (*domain.Outfit, []string, error) {
 	if err := validateOutfit(outfit); err != nil {
 		return nil, nil, err
 	}
@@ -81,13 +81,13 @@ func (s *OutfitService) Create(outfit *model.Outfit) (*model.Outfit, []string, e
 	return saved, warnings, nil
 }
 
-func (s *OutfitService) verifyItemsInCloset(items []model.Item) error {
+func (s *OutfitService) verifyItemsInCloset(items []domain.Item) error {
 	seen := make(map[string]bool, len(items))
 	for _, item := range items {
-		if item.ID.IsZero() {
+		if len(item.ID) == 0 {
 			return fmt.Errorf("item %q must be saved to the closet before being added to an outfit", item.Name)
 		}
-		id := item.ID.Hex()
+		id := item.ID
 		if seen[id] {
 			return fmt.Errorf("item %q appears more than once in the outfit", item.Name)
 		}
@@ -99,7 +99,7 @@ func (s *OutfitService) verifyItemsInCloset(items []model.Item) error {
 	return nil
 }
 
-func validateOutfit(outfit *model.Outfit) error {
+func validateOutfit(outfit *domain.Outfit) error {
 	var errs []string
 
 	if len(outfit.Name) < 2 || len(outfit.Name) > 50 {
@@ -140,7 +140,7 @@ func validateOutfit(outfit *model.Outfit) error {
 	return nil
 }
 
-func validateOutfitItems(items []model.Item) []string {
+func validateOutfitItems(items []domain.Item) []string {
 	var errs []string
 
 	total := len(items)
@@ -153,41 +153,41 @@ func validateOutfitItems(items []model.Item) []string {
 		errs = append(errs, "outfit must have at most 10 items")
 	}
 
-	counts := make(map[model.Category]int, total)
+	counts := make(map[domain.Category]int, total)
 	for _, item := range items {
 		counts[item.Category]++
 	}
 
-	if counts[model.Top] != 1 {
-		errs = append(errs, fmt.Sprintf("outfit must have exactly 1 top, got %d", counts[model.Top]))
+	if counts[domain.Top] != 1 {
+		errs = append(errs, fmt.Sprintf("outfit must have exactly 1 top, got %d", counts[domain.Top]))
 	}
-	if counts[model.Bottom] != 1 {
-		errs = append(errs, fmt.Sprintf("outfit must have exactly 1 bottom, got %d", counts[model.Bottom]))
+	if counts[domain.Bottom] != 1 {
+		errs = append(errs, fmt.Sprintf("outfit must have exactly 1 bottom, got %d", counts[domain.Bottom]))
 	}
-	if counts[model.Shoes] != 1 {
-		errs = append(errs, fmt.Sprintf("outfit must have exactly 1 pair of shoes, got %d", counts[model.Shoes]))
+	if counts[domain.Shoes] != 1 {
+		errs = append(errs, fmt.Sprintf("outfit must have exactly 1 pair of shoes, got %d", counts[domain.Shoes]))
 	}
 
-	if counts[model.Outerwear] > 1 {
-		errs = append(errs, fmt.Sprintf("outfit may have at most 1 outerwear piece, got %d", counts[model.Outerwear]))
+	if counts[domain.Outerwear] > 1 {
+		errs = append(errs, fmt.Sprintf("outfit may have at most 1 outerwear piece, got %d", counts[domain.Outerwear]))
 	}
-	if counts[model.Hosiery] > 1 {
-		errs = append(errs, fmt.Sprintf("outfit may have at most 1 hosiery piece, got %d", counts[model.Hosiery]))
+	if counts[domain.Hosiery] > 1 {
+		errs = append(errs, fmt.Sprintf("outfit may have at most 1 hosiery piece, got %d", counts[domain.Hosiery]))
 	}
-	if counts[model.Innerwear] > 1 {
-		errs = append(errs, fmt.Sprintf("outfit may have at most 1 innerwear piece, got %d", counts[model.Innerwear]))
+	if counts[domain.Innerwear] > 1 {
+		errs = append(errs, fmt.Sprintf("outfit may have at most 1 innerwear piece, got %d", counts[domain.Innerwear]))
 	}
-	if counts[model.Accesories] > 3 {
-		errs = append(errs, fmt.Sprintf("outfit may have at most 3 accessories, got %d", counts[model.Accesories]))
+	if counts[domain.Accesories] > 3 {
+		errs = append(errs, fmt.Sprintf("outfit may have at most 3 accessories, got %d", counts[domain.Accesories]))
 	}
-	if counts[model.Jewelry] > 3 {
-		errs = append(errs, fmt.Sprintf("outfit may have at most 3 jewelry pieces, got %d", counts[model.Jewelry]))
+	if counts[domain.Jewelry] > 3 {
+		errs = append(errs, fmt.Sprintf("outfit may have at most 3 jewelry pieces, got %d", counts[domain.Jewelry]))
 	}
 
 	return errs
 }
 
-func crossFieldWarnings(outfit *model.Outfit) []string {
+func crossFieldWarnings(outfit *domain.Outfit) []string {
 	var warnings []string
 
 	mandatory := mandatoryItems(outfit.Items)
@@ -195,10 +195,10 @@ func crossFieldWarnings(outfit *model.Outfit) []string {
 	if len(outfit.Season) > 0 {
 		outfitSeasons := toSet(outfit.Season)
 		for _, item := range mandatory {
-			if len(item.Season) > 0 && !setsOverlap(outfitSeasons, toSet(item.Season)) {
+			if len(item.SeasonTags) > 0 && !setsOverlap(outfitSeasons, toSet(item.SeasonTags)) {
 				warnings = append(warnings, fmt.Sprintf(
 					"season mismatch: outfit is tagged %v but %q (%s) is only tagged %v",
-					outfit.Season, item.Name, item.Category, item.Season,
+					outfit.Season, item.Name, item.Category, item.SeasonTags,
 				))
 			}
 		}
@@ -207,7 +207,7 @@ func crossFieldWarnings(outfit *model.Outfit) []string {
 	if len(outfit.Occasion) > 0 {
 		itemOccasions := make(map[string]bool)
 		for _, item := range mandatory {
-			for _, o := range item.Occasion {
+			for _, o := range item.Ocassions {
 				itemOccasions[o] = true
 			}
 		}
@@ -222,10 +222,10 @@ func crossFieldWarnings(outfit *model.Outfit) []string {
 	return warnings
 }
 
-func mandatoryItems(items []model.Item) []model.Item {
-	var out []model.Item
+func mandatoryItems(items []domain.Item) []domain.Item {
+	var out []domain.Item
 	for _, item := range items {
-		if item.Category == model.Top || item.Category == model.Bottom || item.Category == model.Shoes {
+		if item.Category == domain.Top || item.Category == domain.Bottom || item.Category == domain.Shoes {
 			out = append(out, item)
 		}
 	}
