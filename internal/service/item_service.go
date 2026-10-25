@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/crisywini/pinta-api/internal/model/domain"
-	"github.com/crisywini/pinta-api/internal/repository"
+	"github.com/crisywini/pinta-api/internal/domain"
+	"github.com/crisywini/pinta-api/internal/port/repository"
 )
 
 var nameRegex = regexp.MustCompile(`^[a-zA-Z0-9 '\-]+$`)
