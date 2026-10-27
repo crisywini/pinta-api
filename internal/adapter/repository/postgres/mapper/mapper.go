@@ -1,7 +1,7 @@
 package mapper
 
 import (
-	"github.com/crisywini/pinta-api/internal/adapter/repository/posgtres/model"
+	"github.com/crisywini/pinta-api/internal/adapter/repository/postgres/model"
 	"github.com/crisywini/pinta-api/internal/domain"
 )
 
@@ -45,4 +45,13 @@ func ToDomain(r model.ItemRow) domain.Item {
 		ImageAssetID:       r.ImageAssetID,
 		AvailabilityStatus: r.AvailabilityStatus,
 	}
+}
+
+func ToDomainList(rows []model.ItemRow) []domain.Item {
+	result := make([]domain.Item, 0, len(rows))
+	for _, row := range rows {
+
+		result = append(result, ToDomain(row))
+	}
+	return result
 }

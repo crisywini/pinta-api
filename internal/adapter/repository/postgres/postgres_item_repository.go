@@ -1,15 +1,18 @@
-package posgtres
+package postgres
 
 import (
 	"context"
 	"errors"
 
-	"github.com/crisywini/pinta-api/internal/adapter/repository/posgtres/mapper"
-	"github.com/crisywini/pinta-api/internal/adapter/repository/posgtres/model"
+	"github.com/crisywini/pinta-api/internal/adapter/repository/postgres/mapper"
+	"github.com/crisywini/pinta-api/internal/adapter/repository/postgres/model"
 	"github.com/crisywini/pinta-api/internal/domain"
+	"github.com/crisywini/pinta-api/internal/port/repository"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var _ repository.ItemRepository = (*PostgresRepository)(nil)
 
 type PostgresRepository struct {
 	pool *pgxpool.Pool
@@ -23,7 +26,7 @@ const itemColumns = `id, user_id, name, category, sub_category,
 	primary_color, secondary_color, pattern, material, fit, silhouette,
 	style_tags, occasions, season_tags, image_asset_id, available`
 
-func (r *PostgresRepository) Create(ctx context.Context, item *domain.Item) error {
+func (r *PostgresRepository) Save(ctx context.Context, item *domain.Item) (*domain.Item, error) {
 	row := mapper.ToRow(item)
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO items (`+itemColumns+`)
@@ -33,10 +36,10 @@ func (r *PostgresRepository) Create(ctx context.Context, item *domain.Item) erro
 		row.Fit, row.Silhouette, row.StyleTags, row.Occasions,
 		row.SeasonTags, row.ImageAssetID, row.AvailabilityStatus,
 	)
-	return err
+	return item, err
 }
 
-func (r *PostgresRepository) GetByID(ctx context.Context, id string) (*domain.Item, error) {
+func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*domain.Item, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+itemColumns+` FROM items WHERE id = $1`, id)
 	if err != nil {
@@ -70,7 +73,23 @@ func (r *PostgresRepository) ListByUser(ctx context.Context, userID string) ([]d
 	return items, nil
 }
 
-func (r *PostgresRepository) Update(ctx context.Context, item *domain.Item) error {
+func (r *PostgresRepository) FindAll(ctx context.Context) ([]domain.Item, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT * FROM items WHERE id = $1`)
+	if err != nil {
+		return nil, err
+	}
+
+	dbRows, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.ItemRow])
+	if err != nil {
+		return nil, err
+	}
+
+	items := mapper.ToDomainList(dbRows)
+	return items, nil
+}
+
+func (r *PostgresRepository) Update(ctx context.Context, id string, item *domain.Item) error {
 	row := mapper.ToRow(item)
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE items SET
