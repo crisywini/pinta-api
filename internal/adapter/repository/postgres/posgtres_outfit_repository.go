@@ -18,8 +18,8 @@ type OutfitPostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewPostgresOutfitRepository(pool *pgxpool.Pool) *PostgresRepository {
-	return &PostgresRepository{pool: pool}
+func NewPostgresOutfitRepository(pool *pgxpool.Pool) *OutfitPostgresRepository {
+	return &OutfitPostgresRepository{pool: pool}
 }
 
 const outfitColumns = `id, name, ocassions, season, mood,
@@ -84,14 +84,14 @@ func (r *OutfitPostgresRepository) FindAll(ctx context.Context) ([]domain.Outfit
 		return nil, err
 	}
 
-	items := mapper.ToDomainListOutfits(dbRows)
-	return items, nil
+	outfits := mapper.ToDomainListOutfits(dbRows)
+	return outfits, nil
 }
 
 func (r *OutfitPostgresRepository) Update(ctx context.Context, id string, outfit *domain.Outfit) error {
 	row := mapper.ToRowOutfit(outfit)
 	tag, err := r.pool.Exec(ctx, `
-		UPDATE items SET
+		UPDATE outfit SET
 			name=$2, ocassions=$3, season=$4, season=$5,
 			mood=$6, fragrance=$7, notes=$8, favorite=$9,
 			wear_count=$10, photo=$11, last_worn=$12
@@ -100,6 +100,18 @@ func (r *OutfitPostgresRepository) Update(ctx context.Context, id string, outfit
 		row.Favorite, row.WearCount, row.Photo, row.LastWorn,
 	)
 
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
+
+func (r *OutfitPostgresRepository) Delete(ctx context.Context, id string) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM outfit WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}

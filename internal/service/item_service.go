@@ -53,7 +53,8 @@ func (s *ItemService) GetById(ctx context.Context, id string) (*domain.Item, err
 }
 
 func (s *ItemService) GetAll(ctx context.Context) []domain.Item {
-	return s.repository.FindAll(ctx)
+	items, _ := s.repository.FindAll(ctx)
+	return items
 }
 
 func (s *ItemService) Update(ctx context.Context, id string, updated *domain.Item) error {

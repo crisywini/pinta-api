@@ -12,21 +12,21 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var _ repository.ItemRepository = (*PostgresRepository)(nil)
+var _ repository.ItemRepository = (*ItemPostgresRepository)(nil)
 
-type PostgresRepository struct {
+type ItemPostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
-func NewPostgresItemRepository(pool *pgxpool.Pool) *PostgresRepository {
-	return &PostgresRepository{pool: pool}
+func NewPostgresItemRepository(pool *pgxpool.Pool) *ItemPostgresRepository {
+	return &ItemPostgresRepository{pool: pool}
 }
 
 const itemColumns = `id, user_id, name, category, sub_category,
 	primary_color, secondary_color, pattern, material, fit, silhouette,
 	style_tags, occasions, season_tags, image_asset_id, available`
 
-func (r *PostgresRepository) Save(ctx context.Context, item *domain.Item) (*domain.Item, error) {
+func (r *ItemPostgresRepository) Save(ctx context.Context, item *domain.Item) (*domain.Item, error) {
 	row := mapper.ToRowItem(item)
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO items (`+itemColumns+`)
@@ -40,7 +40,7 @@ func (r *PostgresRepository) Save(ctx context.Context, item *domain.Item) (*doma
 	return &saved, err
 }
 
-func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*domain.Item, error) {
+func (r *ItemPostgresRepository) FindByID(ctx context.Context, id string) (*domain.Item, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+itemColumns+` FROM items WHERE id = $1`, id)
 	if err != nil {
@@ -57,7 +57,7 @@ func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*domain.I
 	return &item, nil
 }
 
-func (r *PostgresRepository) ListByUser(ctx context.Context, userID string) ([]domain.Item, error) {
+func (r *ItemPostgresRepository) ListByUser(ctx context.Context, userID string) ([]domain.Item, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+itemColumns+` FROM items WHERE user_id = $1`, userID)
 	if err != nil {
@@ -74,7 +74,7 @@ func (r *PostgresRepository) ListByUser(ctx context.Context, userID string) ([]d
 	return items, nil
 }
 
-func (r *PostgresRepository) FindAll(ctx context.Context) ([]domain.Item, error) {
+func (r *ItemPostgresRepository) FindAll(ctx context.Context) ([]domain.Item, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT * FROM items`)
 	if err != nil {
@@ -90,7 +90,7 @@ func (r *PostgresRepository) FindAll(ctx context.Context) ([]domain.Item, error)
 	return items, nil
 }
 
-func (r *PostgresRepository) Update(ctx context.Context, id string, item *domain.Item) error {
+func (r *ItemPostgresRepository) Update(ctx context.Context, id string, item *domain.Item) error {
 	row := mapper.ToRowItem(item)
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE items SET
@@ -113,7 +113,7 @@ func (r *PostgresRepository) Update(ctx context.Context, id string, item *domain
 	return nil
 }
 
-func (r *PostgresRepository) Delete(ctx context.Context, id string) error {
+func (r *ItemPostgresRepository) Delete(ctx context.Context, id string) error {
 	tag, err := r.pool.Exec(ctx, `DELETE FROM items WHERE id = $1`, id)
 	if err != nil {
 		return err

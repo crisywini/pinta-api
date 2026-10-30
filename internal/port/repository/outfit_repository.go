@@ -9,7 +9,6 @@ import (
 type OutfitRepository interface {
 	Save(ctx context.Context, item *domain.Outfit) (*domain.Outfit, error)
 	FindByID(ctx context.Context, id string) (*domain.Outfit, error)
-	ListByUser(ctx context.Context, userID string) ([]domain.Outfit, error)
 	FindAll(ctx context.Context) ([]domain.Outfit, error)
 	Update(ctx context.Context, id string, updated *domain.Outfit) error
 	Delete(ctx context.Context, id string) error
