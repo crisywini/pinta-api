@@ -71,3 +71,19 @@ func (r *OutfitPostgresRepository) FindByID(ctx context.Context, id string) (*do
 	outfit := mapper.ToDomainOutfit(row)
 	return &outfit, nil
 }
+
+func (r *OutfitPostgresRepository) FindAll(ctx context.Context) ([]domain.Outfit, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT * FROM outfits`)
+	if err != nil {
+		return nil, err
+	}
+
+	dbRows, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.OutfitRow])
+	if err != nil {
+		return nil, err
+	}
+
+	items := mapper.ToDomainListOutfits(dbRows)
+	return items, nil
+}
