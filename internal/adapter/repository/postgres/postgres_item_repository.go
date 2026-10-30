@@ -27,7 +27,7 @@ const itemColumns = `id, user_id, name, category, sub_category,
 	style_tags, occasions, season_tags, image_asset_id, available`
 
 func (r *PostgresRepository) Save(ctx context.Context, item *domain.Item) (*domain.Item, error) {
-	row := mapper.ToRow(item)
+	row := mapper.ToRowItem(item)
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO items (`+itemColumns+`)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
@@ -52,7 +52,7 @@ func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*domain.I
 		}
 		return nil, err
 	}
-	item := mapper.ToDomain(row)
+	item := mapper.ToDomainItem(row)
 	return &item, nil
 }
 
@@ -68,7 +68,7 @@ func (r *PostgresRepository) ListByUser(ctx context.Context, userID string) ([]d
 	}
 	items := make([]domain.Item, len(dbRows))
 	for i, row := range dbRows {
-		items[i] = mapper.ToDomain(row)
+		items[i] = mapper.ToDomainItem(row)
 	}
 	return items, nil
 }
@@ -85,12 +85,12 @@ func (r *PostgresRepository) FindAll(ctx context.Context) ([]domain.Item, error)
 		return nil, err
 	}
 
-	items := mapper.ToDomainList(dbRows)
+	items := mapper.ToDomainListItem(dbRows)
 	return items, nil
 }
 
 func (r *PostgresRepository) Update(ctx context.Context, id string, item *domain.Item) error {
-	row := mapper.ToRow(item)
+	row := mapper.ToRowItem(item)
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE items SET
 			name=$2, category=$3, sub_category=$4, primary_color=$5,
