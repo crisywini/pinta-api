@@ -35,7 +35,8 @@ func (s *OutfitService) GetById(ctx context.Context, id string) (*domain.Outfit,
 }
 
 func (s *OutfitService) GetAll(ctx context.Context) []domain.Outfit {
-	return s.repository.FindAll(ctx)
+	outfits, _ := s.repository.FindAll(ctx)
+	return outfits
 }
 
 func (s *OutfitService) Update(ctx context.Context, id string, updated *domain.Outfit) ([]string, error) {
