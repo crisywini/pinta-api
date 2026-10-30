@@ -36,7 +36,8 @@ func (r *PostgresRepository) Save(ctx context.Context, item *domain.Item) (*doma
 		row.Fit, row.Silhouette, row.StyleTags, row.Occasions,
 		row.SeasonTags, row.ImageAssetID, row.AvailabilityStatus,
 	)
-	return item, err
+	saved := mapper.ToDomainItem(row)
+	return &saved, err
 }
 
 func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*domain.Item, error) {
