@@ -87,3 +87,25 @@ func (r *OutfitPostgresRepository) FindAll(ctx context.Context) ([]domain.Outfit
 	items := mapper.ToDomainListOutfits(dbRows)
 	return items, nil
 }
+
+func (r *OutfitPostgresRepository) Update(ctx context.Context, id string, outfit *domain.Outfit) error {
+	row := mapper.ToRowOutfit(outfit)
+	tag, err := r.pool.Exec(ctx, `
+		UPDATE items SET
+			name=$2, ocassions=$3, season=$4, season=$5,
+			mood=$6, fragrance=$7, notes=$8, favorite=$9,
+			wear_count=$10, photo=$11, last_worn=$12
+		WHERE id=$1`,
+		row.ID, row.Name, row.Occasion, row.Season, row.Mood, row.Fragrance, row.Notes,
+		row.Favorite, row.WearCount, row.Photo, row.LastWorn,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	if tag.RowsAffected() == 0 {
+		return domain.ErrNotFound
+	}
+	return nil
+}
