@@ -49,7 +49,7 @@ func (r *PostgresRepository) FindByID(ctx context.Context, id string) (*domain.I
 	row, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[model.ItemRow])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.ErrNotFound // traducción del error
+			return nil, domain.ErrNotFound
 		}
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (r *PostgresRepository) ListByUser(ctx context.Context, userID string) ([]d
 
 func (r *PostgresRepository) FindAll(ctx context.Context) ([]domain.Item, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT * FROM items WHERE id = $1`)
+		`SELECT * FROM items`)
 	if err != nil {
 		return nil, err
 	}
