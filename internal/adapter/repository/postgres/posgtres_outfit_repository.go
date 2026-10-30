@@ -2,10 +2,13 @@ package postgres
 
 import (
 	"context"
+	"errors"
 
 	"github.com/crisywini/pinta-api/internal/adapter/repository/postgres/mapper"
+	"github.com/crisywini/pinta-api/internal/adapter/repository/postgres/model"
 	"github.com/crisywini/pinta-api/internal/domain"
 	"github.com/crisywini/pinta-api/internal/port/repository"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -22,12 +25,12 @@ func NewPostgresOutfitRepository(pool *pgxpool.Pool) *PostgresRepository {
 const outfitColumns = `id, name, ocassions, season, mood,
 	fragrance, notes, favorite, wear_count, photo, last_worn`
 
-const outfit_itemsColumns = `outfit_id, item_id`
+const outfits_itemsColumns = `outfit_id, item_id`
 
 func (r *OutfitPostgresRepository) Save(ctx context.Context, outfit *domain.Outfit) (*domain.Outfit, error) {
 	row := mapper.ToRowOutfit(outfit)
 	_, err := r.pool.Exec(ctx, `
-		INSERT INTO outfit (`+outfitColumns+`)
+		INSERT INTO outfits (`+outfitColumns+`)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
 		row.ID, row.Name, row.Occasion, row.Season, row.Mood, row.Fragrance,
 		row.Notes, row.Favorite, row.WearCount, row.Photo, row.LastWorn,
@@ -36,7 +39,7 @@ func (r *OutfitPostgresRepository) Save(ctx context.Context, outfit *domain.Outf
 
 	for _, item := range outfit.Items {
 		_, err := r.pool.Exec(ctx, `
-		INSERT INTO outfit_items (`+outfit_itemsColumns+`)
+		INSERT INTO outfits_items (`+outfits_itemsColumns+`)
 		VALUES ($1,$2)`,
 			outfit.ID, item.ID,
 		)
@@ -46,4 +49,25 @@ func (r *OutfitPostgresRepository) Save(ctx context.Context, outfit *domain.Outf
 	}
 	saved := mapper.ToDomainOutfit(row)
 	return &saved, err
+}
+
+func (r *OutfitPostgresRepository) FindByID(ctx context.Context, id string) (*domain.Outfit, error) {
+	rows, err := r.pool.Query(ctx,
+		`SELECT `+itemColumns+` FROM outfits WHERE id = $1`, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	row, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[model.OutfitRow])
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, err
+	}
+
+	outfit := mapper.ToDomainOutfit(row)
+	return &outfit, nil
 }
