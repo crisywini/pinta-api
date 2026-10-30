@@ -5,7 +5,7 @@ import (
 	"github.com/crisywini/pinta-api/internal/domain"
 )
 
-func ToRow(i *domain.Item) model.ItemRow {
+func ToRowItem(i *domain.Item) model.ItemRow {
 	return model.ItemRow{
 		ID:                 i.ID,
 		UserID:             i.UserID,
@@ -26,7 +26,7 @@ func ToRow(i *domain.Item) model.ItemRow {
 	}
 }
 
-func ToDomain(r model.ItemRow) domain.Item {
+func ToDomainItem(r model.ItemRow) domain.Item {
 	return domain.Item{
 		ID:                 r.ID,
 		UserID:             r.UserID,
@@ -47,11 +47,11 @@ func ToDomain(r model.ItemRow) domain.Item {
 	}
 }
 
-func ToDomainList(rows []model.ItemRow) []domain.Item {
+func ToDomainListItem(rows []model.ItemRow) []domain.Item {
 	result := make([]domain.Item, 0, len(rows))
 	for _, row := range rows {
 
-		result = append(result, ToDomain(row))
+		result = append(result, ToDomainItem(row))
 	}
 	return result
 }
