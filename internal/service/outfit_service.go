@@ -209,7 +209,7 @@ func crossFieldWarnings(outfit *domain.Outfit) []string {
 	if len(outfit.Occasion) > 0 {
 		itemOccasions := make(map[string]bool)
 		for _, item := range mandatory {
-			for _, o := range item.Ocassions {
+			for _, o := range item.Occasions {
 				itemOccasions[o] = true
 			}
 		}

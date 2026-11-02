@@ -1,22 +1,22 @@
 package domain
 
 type Item struct {
-	ID                 string
-	UserID             string
-	Name               string
-	Category           Category
-	SubCategory        string
-	PrimaryColor       string
-	SecondaryColor     string
-	Pattern            string
-	Material           string
-	Fit                string
-	Silhouette         string
-	StyleTags          []string
-	Ocassions          []string
-	SeasonTags         []string
-	ImageAssetID       string
-	AvailabilityStatus bool
+	ID                 string   `json:"id"`
+	UserID             string   `json:"user_id"`
+	Name               string   `json:"name"`
+	Category           Category `json:"category"`
+	SubCategory        string   `json:"sub_category"`
+	PrimaryColor       string   `json:"primary_color"`
+	SecondaryColor     string   `json:"secondary_color"`
+	Pattern            string   `json:"pattern"`
+	Material           string   `json:"meterial"`
+	Fit                string   `json:"fit"`
+	Silhouette         string   `json:"silhouette"`
+	StyleTags          []string `json:"style_tags"`
+	Occasions          []string `json:"occasions"`
+	SeasonTags         []string `json:"season_tags"`
+	ImageAssetID       string   `json:"image_asset_id"`
+	AvailabilityStatus bool     `json:"availability_status"`
 }
 
 type ItemBuilder struct {
@@ -109,8 +109,8 @@ func (b *ItemBuilder) WithStyleTags(styleTags []string) *ItemBuilder {
 	return b
 }
 
-func (b *ItemBuilder) WithOcassions(occasions []string) *ItemBuilder {
-	b.item.Ocassions = occasions
+func (b *ItemBuilder) WithOccasions(occasions []string) *ItemBuilder {
+	b.item.Occasions = occasions
 	return b
 }
 
