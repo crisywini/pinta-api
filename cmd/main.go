@@ -73,7 +73,7 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done() // espera Ctrl+C / SIGTERM
+	<-ctx.Done()
 	log.Println("shutting down...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

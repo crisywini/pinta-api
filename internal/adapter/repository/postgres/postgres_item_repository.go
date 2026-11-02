@@ -26,18 +26,28 @@ const itemColumns = `id, user_id, name, category, sub_category,
 	primary_color, secondary_color, pattern, material, fit, silhouette,
 	style_tags, occasions, season_tags, image_asset_id, available`
 
+const itemInsertColumns = `user_id, name, category, sub_category,
+	primary_color, secondary_color, pattern, material, fit, silhouette,
+	style_tags, occasions, season_tags, image_asset_id, available`
+
 func (r *ItemPostgresRepository) Save(ctx context.Context, item *domain.Item) (*domain.Item, error) {
 	row := mapper.ToRowItem(item)
-	_, err := r.pool.Exec(ctx, `
-		INSERT INTO items (`+itemColumns+`)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
-		row.ID, row.UserID, row.Name, row.Category, row.SubCategory,
+
+	err := r.pool.QueryRow(ctx, `
+		INSERT INTO items (`+itemInsertColumns+`)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+		RETURNING id`,
+		row.UserID, row.Name, row.Category, row.SubCategory,
 		row.PrimaryColor, row.SecondaryColor, row.Pattern, row.Material,
 		row.Fit, row.Silhouette, row.StyleTags, row.Occasions,
 		row.SeasonTags, row.ImageAssetID, row.AvailabilityStatus,
-	)
+	).Scan(&row.ID)
+	if err != nil {
+		return nil, err
+	}
+
 	saved := mapper.ToDomainItem(row)
-	return &saved, err
+	return &saved, nil
 }
 
 func (r *ItemPostgresRepository) FindByID(ctx context.Context, id string) (*domain.Item, error) {

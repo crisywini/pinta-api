@@ -108,7 +108,7 @@ func validateItem(item *domain.Item) error {
 		}
 	}
 
-	for _, o := range item.Ocassions {
+	for _, o := range item.Occasions {
 		if !validOccasions[o] {
 			errs = append(errs, fmt.Sprintf("invalid occasion %q: allowed values are work, casual, brunch, formal, party, sport, date", o))
 		}
