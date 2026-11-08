@@ -70,7 +70,14 @@ func (s *OutfitService) Create(ctx context.Context, outfit *domain.Outfit) (*dom
 		return nil, nil, err
 	}
 
-	if err := s.verifyItemsInCloset(ctx, outfit.Items); err != nil {
+	ids := make([]string, len(outfit.Items))
+	for i, it := range outfit.Items {
+		ids[i] = it.ID
+	}
+
+	items, err := s.itemRepository.FindByIDs(ctx, ids)
+
+	if err := s.verifyItemsInCloset(ctx, items); err != nil {
 		return nil, nil, err
 	}
 

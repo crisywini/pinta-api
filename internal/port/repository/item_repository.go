@@ -13,4 +13,5 @@ type ItemRepository interface {
 	FindAll(ctx context.Context) ([]domain.Item, error)
 	Update(ctx context.Context, id string, updated *domain.Item) error
 	Delete(ctx context.Context, id string) error
+	FindByIDs(ctx context.Context, ids []string) ([]domain.Item, error)
 }
