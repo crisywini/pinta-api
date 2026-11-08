@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/crisywini/pinta-api/internal/adapter/repository/postgres/mapper"
 	"github.com/crisywini/pinta-api/internal/adapter/repository/postgres/model"
@@ -104,22 +105,44 @@ func (r *OutfitPostgresRepository) FindAll(ctx context.Context) ([]domain.Outfit
 
 func (r *OutfitPostgresRepository) Update(ctx context.Context, id string, outfit *domain.Outfit) error {
 	row := mapper.ToRowOutfit(outfit)
-	tag, err := r.pool.Exec(ctx, `
-		UPDATE outfit SET
-			name=$2, occasions=$3, seasons=$4, season=$5,
-			mood=$6, fragrance=$7, notes=$8, favorite=$9,
-			wear_count=$10, photo=$11, last_worn=$12
-		WHERE id=$1`,
-		row.ID, row.Name, row.Occasions, row.Seasons, row.Mood, row.Fragrance, row.Notes,
-		row.Favorite, row.WearCount, row.Photo, row.LastWorn,
-	)
 
+	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("begin tx: %w", err)
 	}
+	defer tx.Rollback(ctx)
 
+	tag, err := tx.Exec(ctx, `
+		UPDATE outfits SET
+			name=$2, occasions=$3, seasons=$4,
+			mood=$5, fragrance=$6, notes=$7, favorite=$8,
+			wear_count=$9, photo=$10, last_worn=$11
+		WHERE id=$1`,
+		id, row.Name, row.Occasions, row.Seasons, row.Mood, row.Fragrance,
+		row.Notes, row.Favorite, row.WearCount, row.Photo, row.LastWorn,
+	)
+	if err != nil {
+		return fmt.Errorf("update outfit: %w", err)
+	}
 	if tag.RowsAffected() == 0 {
 		return domain.ErrNotFound
+	}
+
+	if _, err := tx.Exec(ctx,
+		`DELETE FROM outfit_items WHERE outfit_id = $1`, id); err != nil {
+		return fmt.Errorf("clear outfit_items: %w", err)
+	}
+	for _, item := range outfit.Items {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO outfit_items (outfit_id, item_id) VALUES ($1, $2)`,
+			id, item.ID,
+		); err != nil {
+			return fmt.Errorf("insert outfit_item %s: %w", item.ID, err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit: %w", err)
 	}
 	return nil
 }
