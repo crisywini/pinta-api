@@ -150,7 +150,7 @@ func (r *ItemPostgresRepository) Update(ctx context.Context, id string, item *do
 			silhouette=$10, style_tags=$11, occasions=$12, season_tags=$13,
 			image_asset_id=$14, available=$15
 		WHERE id=$1`,
-		row.ID, row.Name, row.Category, row.SubCategory, row.PrimaryColor,
+		id, row.Name, row.Category, row.SubCategory, row.PrimaryColor,
 		row.SecondaryColor, row.Pattern, row.Material, row.Fit,
 		row.Silhouette, row.StyleTags, row.Occasions, row.SeasonTags,
 		row.ImageAssetID, row.AvailabilityStatus,
