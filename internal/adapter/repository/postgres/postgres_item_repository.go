@@ -120,6 +120,21 @@ func (r *ItemPostgresRepository) FindAll(ctx context.Context) ([]domain.Item, er
 	return items, nil
 }
 
+func (r *ItemPostgresRepository) FindAllByOutfitID(ctx context.Context, outfitId string) ([]domain.Item, error) {
+	rowsIds, err := r.pool.Query(ctx,
+		`SELECT item_id FROM outfit_items WHERE outfit_id = $1 `, outfitId)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err := pgx.CollectRows(rowsIds, pgx.RowTo[string])
+	if err != nil {
+		return nil, err
+	}
+
+	return r.FindByIDs(ctx, ids)
+}
+
 func (r *ItemPostgresRepository) Update(ctx context.Context, id string, item *domain.Item) error {
 	row := mapper.ToRowItem(item)
 	tag, err := r.pool.Exec(ctx, `
