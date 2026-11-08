@@ -5,8 +5,8 @@ import "time"
 type OutfitRow struct {
 	ID        string    `db:"id"`
 	Name      string    `db:"name"`
-	Occasion  []string  `db:"occasions"`
-	Season    []string  `db:"season"`
+	Occasions []string  `db:"occasions"`
+	Seasons   []string  `db:"seasons"`
 	Mood      string    `db:"mood"`
 	Fragrance string    `db:"fragrance"`
 	Notes     string    `db:"notes"`

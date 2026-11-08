@@ -7,10 +7,9 @@ import (
 
 func ToRowOutfit(o *domain.Outfit) model.OutfitRow {
 	return model.OutfitRow{
-		ID:        o.ID,
 		Name:      o.Name,
-		Occasion:  o.Occasion,
-		Season:    o.Season,
+		Occasions: o.Occasions,
+		Seasons:   o.Seasons,
 		Mood:      o.Mood,
 		Fragrance: o.Fragrance,
 		Notes:     o.Notes,
@@ -25,8 +24,8 @@ func ToDomainOutfit(o model.OutfitRow) domain.Outfit {
 	return domain.Outfit{
 		ID:        o.ID,
 		Name:      o.Name,
-		Occasion:  o.Occasion,
-		Season:    o.Season,
+		Occasions: o.Occasions,
+		Seasons:   o.Seasons,
 		Mood:      o.Mood,
 		Fragrance: o.Fragrance,
 		Notes:     o.Notes,

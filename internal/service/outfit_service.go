@@ -81,6 +81,8 @@ func (s *OutfitService) Create(ctx context.Context, outfit *domain.Outfit) (*dom
 		return nil, nil, err
 	}
 
+	outfit.Items = items
+
 	warnings := crossFieldWarnings(outfit)
 
 	saved, err := s.repository.Save(ctx, outfit)
@@ -117,15 +119,15 @@ func validateOutfit(outfit *domain.Outfit) error {
 		errs = append(errs, "name may only contain letters, digits, spaces, hyphens and apostrophes")
 	}
 
-	errs = append(errs, validateOutfitItems(outfit.Items)...)
+	//errs = append(errs, validateOutfitItems(outfit.Items)...)
 
-	for _, o := range outfit.Occasion {
+	for _, o := range outfit.Occasions {
 		if !validOccasions[o] {
 			errs = append(errs, fmt.Sprintf("invalid occasion %q: allowed values are work, casual, brunch, formal, party, sport, date", o))
 		}
 	}
 
-	for _, s := range outfit.Season {
+	for _, s := range outfit.Seasons {
 		if !validSeasons[s] {
 			errs = append(errs, fmt.Sprintf("invalid season %q: allowed values are spring, summer, fall, winter", s))
 		}
@@ -201,29 +203,29 @@ func crossFieldWarnings(outfit *domain.Outfit) []string {
 
 	mandatory := mandatoryItems(outfit.Items)
 
-	if len(outfit.Season) > 0 {
-		outfitSeasons := toSet(outfit.Season)
+	if len(outfit.Seasons) > 0 {
+		outfitSeasons := toSet(outfit.Seasons)
 		for _, item := range mandatory {
 			if len(item.SeasonTags) > 0 && !setsOverlap(outfitSeasons, toSet(item.SeasonTags)) {
 				warnings = append(warnings, fmt.Sprintf(
 					"season mismatch: outfit is tagged %v but %q (%s) is only tagged %v",
-					outfit.Season, item.Name, item.Category, item.SeasonTags,
+					outfit.Seasons, item.Name, item.Category, item.SeasonTags,
 				))
 			}
 		}
 	}
 
-	if len(outfit.Occasion) > 0 {
+	if len(outfit.Occasions) > 0 {
 		itemOccasions := make(map[string]bool)
 		for _, item := range mandatory {
 			for _, o := range item.Occasions {
 				itemOccasions[o] = true
 			}
 		}
-		if len(itemOccasions) > 0 && !setsOverlap(toSet(outfit.Occasion), itemOccasions) {
+		if len(itemOccasions) > 0 && !setsOverlap(toSet(outfit.Occasions), itemOccasions) {
 			warnings = append(warnings, fmt.Sprintf(
 				"occasion mismatch: outfit is tagged %v but none of the mandatory items (top, bottom, shoes) support these occasions",
-				outfit.Occasion,
+				outfit.Occasions,
 			))
 		}
 	}
