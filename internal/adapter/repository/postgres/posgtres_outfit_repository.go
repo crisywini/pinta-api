@@ -15,11 +15,12 @@ import (
 var _ repository.OutfitRepository = (*OutfitPostgresRepository)(nil)
 
 type OutfitPostgresRepository struct {
-	pool *pgxpool.Pool
+	pool           *pgxpool.Pool
+	itemRepository *ItemPostgresRepository
 }
 
-func NewPostgresOutfitRepository(pool *pgxpool.Pool) *OutfitPostgresRepository {
-	return &OutfitPostgresRepository{pool: pool}
+func NewPostgresOutfitRepository(pool *pgxpool.Pool, itemRepository *ItemPostgresRepository) *OutfitPostgresRepository {
+	return &OutfitPostgresRepository{pool: pool, itemRepository: itemRepository}
 }
 
 const outfitColumns = `name, occasions, seasons, mood,
@@ -77,6 +78,11 @@ func (r *OutfitPostgresRepository) FindByID(ctx context.Context, id string) (*do
 	}
 
 	outfit := mapper.ToDomainOutfit(row)
+	outfit.Items, err = r.itemRepository.FindAllByOutfitID(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
 	return &outfit, nil
 }
 

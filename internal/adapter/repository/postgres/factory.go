@@ -18,9 +18,11 @@ func New(ctx context.Context, cfg config.Config) (*repository.Repositories, erro
 		return nil, err
 	}
 
+	itemRepo := NewPostgresItemRepository(pool)
+
 	return &repository.Repositories{
-		Items:   NewPostgresItemRepository(pool),
-		Outfits: NewPostgresOutfitRepository(pool),
+		Items:   itemRepo,
+		Outfits: NewPostgresOutfitRepository(pool, itemRepo),
 		Close:   func(context.Context) error { pool.Close(); return nil },
 	}, nil
 }
