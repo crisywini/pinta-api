@@ -121,18 +121,24 @@ func (r *ItemPostgresRepository) FindAll(ctx context.Context) ([]domain.Item, er
 }
 
 func (r *ItemPostgresRepository) FindAllByOutfitID(ctx context.Context, outfitId string) ([]domain.Item, error) {
-	rowsIds, err := r.pool.Query(ctx,
-		`SELECT item_id FROM outfit_items WHERE outfit_id = $1 `, outfitId)
+	rows, err := r.pool.Query(ctx,
+		`SELECT i.id, i.user_id, i.name, i.category, i.sub_category,
+			i.primary_color, i.secondary_color, i.pattern, i.material,
+			i.fit, i.silhouette, i.style_tags, i.occasions, i.season_tags,
+			i.image_asset_id, i.available 
+			FROM items i
+			JOIN outfit_items oi ON oi.item_id = i.id 
+			WHERE outfit_id = $1 `, outfitId)
 	if err != nil {
 		return nil, err
 	}
 
-	ids, err := pgx.CollectRows(rowsIds, pgx.RowTo[string])
+	dbRows, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.ItemRow])
 	if err != nil {
 		return nil, err
 	}
+	return mapper.ToDomainListItem(dbRows), nil
 
-	return r.FindByIDs(ctx, ids)
 }
 
 func (r *ItemPostgresRepository) Update(ctx context.Context, id string, item *domain.Item) error {
