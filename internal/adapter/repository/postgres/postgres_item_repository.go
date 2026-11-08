@@ -67,6 +67,26 @@ func (r *ItemPostgresRepository) FindByID(ctx context.Context, id string) (*doma
 	return &item, nil
 }
 
+func (r *ItemPostgresRepository) FindByIDs(ctx context.Context, ids []string) ([]domain.Item, error) {
+	if len(ids) == 0 {
+		return []domain.Item{}, nil
+	}
+
+	rows, err := r.pool.Query(ctx, `SELECT * `+itemColumns+` FROM items WHERE id = ANY($1)`, ids)
+
+	if err != nil {
+		return nil, err
+	}
+
+	dbRows, err := pgx.CollectRows(rows, pgx.RowToStructByName[model.ItemRow])
+
+	if err != nil {
+		return nil, err
+	}
+
+	return mapper.ToDomainListItem(dbRows), nil
+}
+
 func (r *ItemPostgresRepository) ListByUser(ctx context.Context, userID string) ([]domain.Item, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT `+itemColumns+` FROM items WHERE user_id = $1`, userID)
