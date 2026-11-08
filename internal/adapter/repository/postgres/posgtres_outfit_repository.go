@@ -22,38 +22,46 @@ func NewPostgresOutfitRepository(pool *pgxpool.Pool) *OutfitPostgresRepository {
 	return &OutfitPostgresRepository{pool: pool}
 }
 
-const outfitColumns = `id, name, ocassions, season, mood,
+const outfitColumns = `name, occasions, seasons, mood,
 	fragrance, notes, favorite, wear_count, photo, last_worn`
 
-const outfits_itemsColumns = `outfit_id, item_id`
+const outfitColumnsWithId = `id, name, occasions, seasons, mood,
+	fragrance, notes, favorite, wear_count, photo, last_worn`
+
+const outfit_itemsColumns = `outfit_id, item_id`
 
 func (r *OutfitPostgresRepository) Save(ctx context.Context, outfit *domain.Outfit) (*domain.Outfit, error) {
 	row := mapper.ToRowOutfit(outfit)
-	_, err := r.pool.Exec(ctx, `
+	err := r.pool.QueryRow(ctx, `
 		INSERT INTO outfits (`+outfitColumns+`)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-		row.ID, row.Name, row.Occasion, row.Season, row.Mood, row.Fragrance,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		RETURNING id`,
+		row.Name, row.Occasions, row.Seasons, row.Mood, row.Fragrance,
 		row.Notes, row.Favorite, row.WearCount, row.Photo, row.LastWorn,
-	)
-	// Now we need to save the outfit_items
+	).Scan(&row.ID)
+
+	if err != nil {
+		return nil, err
+	}
 
 	for _, item := range outfit.Items {
 		_, err := r.pool.Exec(ctx, `
-		INSERT INTO outfits_items (`+outfits_itemsColumns+`)
+		INSERT INTO outfit_items (`+outfit_itemsColumns+`)
 		VALUES ($1,$2)`,
-			outfit.ID, item.ID,
+			row.ID, item.ID,
 		)
 		if err != nil {
-
+			return nil, err
 		}
 	}
 	saved := mapper.ToDomainOutfit(row)
+	saved.Items = outfit.Items
 	return &saved, err
 }
 
 func (r *OutfitPostgresRepository) FindByID(ctx context.Context, id string) (*domain.Outfit, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT `+itemColumns+` FROM outfits WHERE id = $1`, id)
+		`SELECT `+outfitColumnsWithId+` FROM outfits WHERE id = $1`, id)
 
 	if err != nil {
 		return nil, err
@@ -92,11 +100,11 @@ func (r *OutfitPostgresRepository) Update(ctx context.Context, id string, outfit
 	row := mapper.ToRowOutfit(outfit)
 	tag, err := r.pool.Exec(ctx, `
 		UPDATE outfit SET
-			name=$2, ocassions=$3, season=$4, season=$5,
+			name=$2, occasions=$3, seasons=$4, season=$5,
 			mood=$6, fragrance=$7, notes=$8, favorite=$9,
 			wear_count=$10, photo=$11, last_worn=$12
 		WHERE id=$1`,
-		row.ID, row.Name, row.Occasion, row.Season, row.Mood, row.Fragrance, row.Notes,
+		row.ID, row.Name, row.Occasions, row.Seasons, row.Mood, row.Fragrance, row.Notes,
 		row.Favorite, row.WearCount, row.Photo, row.LastWorn,
 	)
 

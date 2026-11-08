@@ -52,7 +52,7 @@ func (r *ItemPostgresRepository) Save(ctx context.Context, item *domain.Item) (*
 
 func (r *ItemPostgresRepository) FindByID(ctx context.Context, id string) (*domain.Item, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT `+itemColumns+` FROM items WHERE id = $1`, id)
+		`SELECT `+outfitColumns+` FROM items WHERE id = $1`, id)
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (r *ItemPostgresRepository) FindByIDs(ctx context.Context, ids []string) ([
 		return []domain.Item{}, nil
 	}
 
-	rows, err := r.pool.Query(ctx, `SELECT * `+itemColumns+` FROM items WHERE id = ANY($1)`, ids)
+	rows, err := r.pool.Query(ctx, `SELECT `+itemColumns+` FROM items WHERE id = ANY($1)`, ids)
 
 	if err != nil {
 		return nil, err

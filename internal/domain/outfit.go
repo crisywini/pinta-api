@@ -7,8 +7,8 @@ import (
 type Outfit struct {
 	ID        string
 	Name      string
-	Occasion  []string
-	Season    []string
+	Occasions []string
+	Seasons   []string
 	Mood      string
 	Fragrance string
 	Notes     string
@@ -26,9 +26,9 @@ type OutfitBuilder struct {
 func NewOutfitBuilder() *OutfitBuilder {
 	return &OutfitBuilder{
 		outfit: Outfit{
-			Occasion: []string{},
-			Season:   []string{},
-			Items:    []Item{},
+			Occasions: []string{},
+			Seasons:   []string{},
+			Items:     []Item{},
 		},
 	}
 }
@@ -41,7 +41,7 @@ func (o *OutfitBuilder) WithName(name string) *OutfitBuilder {
 func (o *OutfitBuilder) WithOccasion(occasion []string) *OutfitBuilder {
 	cp := make([]string, len(occasion))
 	copy(cp, occasion)
-	o.outfit.Occasion = cp
+	o.outfit.Occasions = cp
 	return o
 }
 
@@ -51,19 +51,19 @@ func (o *OutfitBuilder) WithPhoto(photo string) *OutfitBuilder {
 }
 
 func (o *OutfitBuilder) AddOccasion(occasion string) *OutfitBuilder {
-	o.outfit.Occasion = append(o.outfit.Occasion, occasion)
+	o.outfit.Occasions = append(o.outfit.Occasions, occasion)
 	return o
 }
 
-func (o *OutfitBuilder) WithSeason(season []string) *OutfitBuilder {
-	cp := make([]string, len(season))
-	copy(cp, season)
-	o.outfit.Season = cp
+func (o *OutfitBuilder) WithSeason(seasons []string) *OutfitBuilder {
+	cp := make([]string, len(seasons))
+	copy(cp, seasons)
+	o.outfit.Seasons = cp
 	return o
 }
 
-func (o *OutfitBuilder) AddSeason(season string) *OutfitBuilder {
-	o.outfit.Season = append(o.outfit.Season, season)
+func (o *OutfitBuilder) AddSeasons(seasons string) *OutfitBuilder {
+	o.outfit.Seasons = append(o.outfit.Seasons, seasons)
 	return o
 }
 
