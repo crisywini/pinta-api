@@ -1,5 +1,4 @@
 services:
-
   mongo:
     image: mongo:8
     restart: unless-stopped
@@ -12,6 +11,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  postgres:
+    image: postgres:17
+    container_name: pintapi-postgres
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: pintapp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d pintapp"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   api:
     build: .
@@ -19,10 +34,12 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017
+      DATABASE_URL: postgres://app:secret@postgres:5432/pintapp?sslmode=disable
+      DB: postgres
     depends_on:
-      mongo:
+      postgres:
         condition: service_healthy
 
 volumes:
   mongo_data:
+  pg_data:
