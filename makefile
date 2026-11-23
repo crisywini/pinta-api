@@ -4,7 +4,7 @@ test:
 	go test -v ./tests/...
 
 run: 
-	docker-compose up -d
+	docker-compose up -d --build 
 
 start: 
 	docker-compose up --build -d 
